@@ -12,11 +12,11 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-r', '--resume', default="experiments/BipedalWalker-v3/DDPG_2", type=str)
-    parser.add_argument('-e', '--episodes', default=100, type=int)
+    parser.add_argument('-r', '--resume', default="experiments/BipedalWalker-v3/DDPG_server7500", type=str)
+    parser.add_argument('-e', '--episodes', default=10, type=int)
     parser.add_argument('-el', '--episode_length', default=1000, type=int)
     parser.add_argument('--render', dest='render', action='store_true')
-    parser.set_defaults(render=False)
+    parser.set_defaults(render=True)
     parser.add_argument('--seed', default=0, type=int)
     return parser.parse_args()
 

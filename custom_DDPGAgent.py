@@ -155,19 +155,19 @@ class DDPGAgent(object):
 
     def load_agent(self, save_path):
         pi_path = os.path.join(save_path, "pi_network.pth")
-        self.pi.load_state_dict(torch.load(pi_path))
+        self.pi.load_state_dict(torch.load(pi_path, map_location='cpu'))                # TODO forced map location -- compatible with gpu machine?
         self.pi.eval()
 
         target_pi_path = os.path.join(save_path, "target_pi_network.pth")
-        self.target_pi.load_state_dict(torch.load(target_pi_path))
+        self.target_pi.load_state_dict(torch.load(target_pi_path, map_location='cpu'))  # TODO compatible with gpu machine?
         self.target_pi.eval()
 
         q_path = os.path.join(save_path, "q_network.pth")
-        self.q.load_state_dict(torch.load(q_path))
+        self.q.load_state_dict(torch.load(q_path, map_location='cpu'))                  # TODO compatible with gpu machine?
         self.q.eval()
 
         target_q_path = os.path.join(save_path, "target_q_network.pth")
-        self.target_q.load_state_dict(torch.load(target_q_path))
+        self.target_q.load_state_dict(torch.load(target_q_path, map_location='cpu'))    # TODO compatible with gpu machine?
         self.target_q.eval()
 
         self.sync_weights()
