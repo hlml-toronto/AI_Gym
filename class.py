@@ -1,4 +1,4 @@
-class HLML:
+class HLML_RL:
     """
     Base class for easy reinforcement learning with OpenAI Gym.
 

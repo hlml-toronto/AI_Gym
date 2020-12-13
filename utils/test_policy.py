@@ -5,18 +5,18 @@ import os.path as osp
 import tensorflow as tf
 import torch
 from spinup import EpochLogger
-from spinup.utils.logx import restore_tf_graph
+from utils.logx import restore_tf_graph
 
 
 def load_policy_and_env(fpath, itr='last', deterministic=False):
     """
     Load a policy from save, whether it's TF or PyTorch, along with RL env.
 
-    Not exceptionally future-proof, but it will suffice for basic uses of the 
+    Not exceptionally future-proof, but it will suffice for basic uses of the
     Spinning Up implementations.
 
     Checks to see if there's a tf1_save folder. If yes, assumes the model
-    is tensorflow and loads it that way. Otherwise, loads as if there's a 
+    is tensorflow and loads it that way. Otherwise, loads as if there's a
     PyTorch save.
     """
 
@@ -91,7 +91,7 @@ def load_tf_policy(fpath, itr, deterministic=False):
 
 def load_pytorch_policy(fpath, itr, deterministic=False):
     """ Load a pytorch policy saved with Spinning Up Logger."""
-    
+
     fname = osp.join(fpath, 'pyt_save', 'model'+itr+'.pt')
     print('\n\nLoading from %s.\n\n'%fname)
 
@@ -147,7 +147,7 @@ if __name__ == '__main__':
     parser.add_argument('--itr', '-i', type=int, default=-1)
     parser.add_argument('--deterministic', '-d', action='store_true')
     args = parser.parse_args()
-    env, get_action = load_policy_and_env(args.fpath, 
+    env, get_action = load_policy_and_env(args.fpath,
                                           args.itr if args.itr >=0 else 'last',
                                           args.deterministic)
     run_policy(env, get_action, args.len, args.episodes, not(args.norender))
