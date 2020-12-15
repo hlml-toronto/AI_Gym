@@ -19,7 +19,7 @@ from tqdm import trange
 import zlib
 
 DIV_LINE_WIDTH = 80
-DEFAULT_DATA_DIR = osp.join(osp.abspath(osp.dirname(osp.dirname(__file__))),'data')
+DEFAULT_DATA_DIR = osp.join(osp.abspath(osp.dirname(osp.dirname(__file__))),'experiments')
 FORCE_DATESTAMP = False
 DEFAULT_SHORTHAND = True
 WAIT_BEFORE_LAUNCH = 5
