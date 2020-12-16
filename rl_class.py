@@ -7,7 +7,27 @@ import torch.nn as nn
 
 class HLML_ActorCritic(nn.Module):
     """
+    Custom Actor/Critic class allows the user to define their own PyTorch models
+
     Must take initialization arguments: observation_space, action_space, **ac_kwargs
+
+    Attributes
+    ----------
+    Determined by the training algorithm specified in ac_kwargs.
+
+    For VPG
+        pi : algos.vpg.core.Actor
+            The policy distribution model, which must follow the Actor class template
+        v : nn.Module
+            The PyTorch model for the on-policy value function
+
+    Methods
+    -------
+    step():
+        given an observation from the environment, apply pi and v to get the
+        next state, and return the chosen action, value, and logp of the action
+    act():
+        performs step() but only returns the action
     """
     def __init__(self, observation_space, action_space, **ac_kwargs):
         super().__init__()
@@ -20,7 +40,7 @@ class HLML_ActorCritic(nn.Module):
         # Check that user models are compatible with algorithm
         core = import_module("algos.{}.core".format(ac_kwargs['training_alg']))
         assert issubclass(type(self.pi), core.Actor)  # pi should have Actor methods
-        assert issubclass(type(self.v), core.MLPCritic)  # v should have MLPCritic methods
+        hasattr(self.v, 'forward')  # v should have forward method
 
         if isinstance(action_space, Box):
             test_act = self.pi._distribution(observation_space.sample())
