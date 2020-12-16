@@ -1,6 +1,9 @@
 from gym.spaces import Box, Discrete
 import gym
 
+from matplotlib import animation
+import matplotlib.pyplot as plt
+import utils.test_policy as test_policy
 
 class HLML_RL:
     """
@@ -89,11 +92,67 @@ class HLML_RL:
             default_kwargs.update(kwargs)
             self.__VPG__(**default_kwargs)
 
-    def render(self, *args, **kwargs):
-        raise NotImplementedError
 
-    def load(self):
-        raise NotImplementedError
+    # Load to pick up training where left off?
+    def load_agent(self, save_path):
+        self.exp_name = "XYZ.pt"
+        self.ac = torch.load(save_path + os.sep + self.exp_name)
+        return 0
 
-    def save(self):
+    def render(self, save_path, save=False, show=True, *args, **kwargs):
+        # logger_kwargs = {'output_dir' : "Jeremy", "exp_name" : whichever}
+        load_agent(save_path)
+
+        if show:
+            env, get_action = load_policy_and_env(args.fpath
+                                        , args.itr if args.itr >=0 else 'last'
+                                        , args.deterministic)
+            run_policy(env, get_action, args.len, args.episodes
+                                        , not(args.norender))
+        if save:
+            """
+            Code from botforge:
+                https://gist.github.com/botforge/64cbb71780e6208172bbf03cd9293553
+            Ensure you have imagemagick installed with
+            sudo apt-get install imagemagick
+            """
+            def save_frames_as_gif(frames, path='./'
+                                            , filename='gym_animation.gif'):
+
+                #Mess with this to change frame size
+                plt.figure(figsize=(frames[0].shape[1] / 72.0
+                            , frames[0].shape[0] / 72.0), dpi=72)
+                patch = plt.imshow(frames[0]); plt.axis('off')
+
+                def animate(i):
+                    patch.set_data(frames[i])
+
+                anim = animation.FuncAnimation(plt.gcf(), animate
+                                        , frames = len(frames), interval=50)
+                anim.save(path + filename, writer='imagemagick', fps=60)
+
+            #Make gym env
+            env = gym.make('CartPole-v1')
+
+            #Run the env
+            observation = env.reset(); frames = []
+            for t in range(1000):
+                #Render to frames buffer
+                frames.append(env.render(mode="rgb_array"))
+                action = ac.act(torch.as_tensor(obs, dtype=torch.float32))
+                o, r, d, _ = env.step(a)
+                obs, res, done, _ = env.step(action)
+                if done:
+                    break
+            env.close()
+            save_frames_as_gif(frames)
+
+    return 0
+
+    # Super easy. Not sure why we'd want this (for restarting where we left off
+    # training perhaps)
+
+
+    # Done automatically.
+    def save_agent(self, save_path):
         raise NotImplementedError
