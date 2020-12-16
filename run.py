@@ -4,6 +4,6 @@ import gym
 if __name__ == '__main__':
     input = {'training_alg': 'vpg',
              'model_list': None,
-             'env': gym.make('LunarLander-v2')}
+             'env': 'LunarLander-v2'}
     training_setup = HLML_RL(**input)
     training_setup.train()

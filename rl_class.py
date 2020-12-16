@@ -15,8 +15,8 @@ class HLML_RL:
         a keyword string indicating which training algorithm to use
     model_list : list
         a list of PyTorch models needed to run the indicated training algorithm
-    env : Env
-        the OpenAI Gym environment to train the RL agent on
+    env : str
+        the OpenAI Gym environment name to instantiate and train the RL agent on
 
     Methods
     -------
@@ -38,14 +38,15 @@ class HLML_RL:
         # Check that requested training algorithm is implemented
         assert self.training_alg in ['vpg']
         # Check that the environment has been tested
-        if self.env.spec.id not in ['LunarLander-v2']:
+        if self.env not in ['LunarLander-v2']:
             print("The current environment has not been tested. Run at your own risk!")
         # Check that the models provided are compatible with the environment
-        self.observation_space_size = len(self.env.observation_space.sample())
-        if isinstance(self.env.action_space, Discrete):
+        test_env = gym.make(self.env)
+        self.observation_space_size = len(test_env.observation_space.sample())
+        if isinstance(test_env.action_space, Discrete):
             self.action_space_size = 1
-        elif isinstance(self.env.action_space, Box):
-            self.action_space_size = len(self.env.action_space.sample())
+        elif isinstance(test_env.action_space, Box):
+            self.action_space_size = len(test_env.action_space.sample())
 
         if self.training_alg == 'vpg':
             pass
@@ -65,7 +66,7 @@ class HLML_RL:
 
         from utils.mpi_tools import mpi_fork
 
-        default_kwargs = {'vpg': {'env': lambda: gym.make('LunarLander-v2'),
+        default_kwargs = {'vpg': {'env': lambda: gym.make(self.env),
                                   'hid': 64,
                                   'l': 2,
                                   'gamma': 0.99,
