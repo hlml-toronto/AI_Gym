@@ -1,5 +1,6 @@
 from gym.spaces import Box, Discrete
 import gym
+from importlib import import_module
 
 
 class HLML_RL:
@@ -52,42 +53,40 @@ class HLML_RL:
             # Check that V input matches action_space_size and observation_space_size
             # Check that pi input matches action_space_size
 
-    def __VPG__(self, **kwargs):
-        """
-        Run vanilla policy gradient training algorithm by calling algo.vpg.vpg
-        """
-        from algos.vpg import vpg
-        from algos.vpg import core
-        from utils.mpi_tools import mpi_fork
-
-        mpi_fork(kwargs['cpu'])  # run parallel code with mpi
-
-        from utils.run_utils import setup_logger_kwargs
-        logger_kwargs = setup_logger_kwargs(kwargs['exp_name'], kwargs['seed'])
-
-        vpg.vpg(kwargs['env'], actor_critic=core.MLPActorCritic,
-                ac_kwargs=dict(hidden_sizes=[kwargs['hid']]*kwargs['l']),
-                gamma=kwargs['gamma'],
-                seed=kwargs['seed'], steps_per_epoch=kwargs['steps'],
-                epochs=kwargs['epochs'], logger_kwargs=logger_kwargs)
-
     def train(self, *args, **kwargs):
         """
         Run the training algorithm to optimize model parameters for the
         environment provided.
         """
-        if self.training_alg == 'vpg':
-            default_kwargs = {'env': lambda: gym.make('LunarLander-v2'),
-                              'hid': 64,
-                              'l': 2,
-                              'gamma': 0.99,
-                              'seed': 0,
-                              'cpu': 1,
-                              'steps': 4000,
-                              'epochs': 50,
-                              'exp_name': 'vpg'}
-            default_kwargs.update(kwargs)
-            self.__VPG__(**default_kwargs)
+        mod = import_module("algos.{}.{}".format(self.training_alg, self.training_alg))
+        method = getattr(mod, self.training_alg)
+        core = import_module("algos.{}.core".format(self.training_alg))
+        actorCritic = getattr(core, "MLPActorCritic")
+
+        from utils.mpi_tools import mpi_fork
+
+        default_kwargs = {'vpg': {'env': lambda: gym.make('LunarLander-v2'),
+                                  'hid': 64,
+                                  'l': 2,
+                                  'gamma': 0.99,
+                                  'seed': 0,
+                                  'cpu': 1,
+                                  'steps': 4000,
+                                  'epochs': 50,
+                                  'exp_name': 'vpg'}
+                          }
+        IO = default_kwargs[self.training_alg]
+        IO.update(kwargs)
+
+        mpi_fork(IO['cpu'])  # run parallel code with mpi
+
+        from utils.run_utils import setup_logger_kwargs
+        logger_kwargs = setup_logger_kwargs(IO['exp_name'], IO['seed'])
+
+        method(IO['env'], actor_critic=actorCritic,
+               ac_kwargs=dict(hidden_sizes=[IO['hid']]*IO['l']),
+               gamma=IO['gamma'], seed=IO['seed'], steps_per_epoch=IO['steps'],
+               epochs=IO['epochs'], logger_kwargs=logger_kwargs)
 
     def render(self, *args, **kwargs):
         raise NotImplementedError
