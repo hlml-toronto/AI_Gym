@@ -60,4 +60,6 @@ if __name__ == '__main__':
     input['model_list'] = [pi, v]
 
     training_setup = HLML_RL(**input)
-    training_setup.train()
+    #training_setup.train()
+
+    training_setup.render(save=True, show=False)
