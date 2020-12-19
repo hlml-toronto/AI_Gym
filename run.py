@@ -1,9 +1,10 @@
-from rl_class import HLML_RL
-import algos.vpg.core as core
 import gym
 import torch
 import torch.nn as nn
 from torch.distributions.categorical import Categorical
+
+import algos.vpg.core as core
+from rl_class import HLML_RL
 
 
 class myActor(core.Actor):
@@ -43,23 +44,27 @@ class myCritic(nn.Module):
         self.v_net = nn.Sequential(*layers)
 
     def forward(self, obs):
-        return torch.squeeze(self.v_net(obs), -1) # Critical to ensure v has right shape.
+        return torch.squeeze(self.v_net(obs), -1)  # Critical to ensure v has right shape.
 
 
 if __name__ == '__main__':
-    input = {'training_alg': 'vpg',
-             'model_list': None,
-             'env': 'LunarLander-v2'}
+    user_input = {'training_alg': 'vpg',          # choose a training algoirthm (e.g. 'vpg')
+                  'model_list': None,             # specify nn modules here or below
+                  'env': 'LunarLander-v2'}        # choose an experiment
+    train_input = {'exp_name': 'VPG-USER_NAME'}   # set the experiment name (labels output directory)
 
-    test_env = gym.make(input['env'])
+    # build custom actor critic nn modules
+    test_env = gym.make(user_input['env'])
     obs_dim = test_env.observation_space.shape[0]
     act_dim = test_env.action_space.n
     pi = myActor(obs_dim, act_dim, (64, 64), nn.Tanh)
     v = myCritic(obs_dim, (32, 32),  nn.Tanh)
 
-    input['model_list'] = [pi, v]
+    user_input['model_list'] = [pi, v]
 
-    training_setup = HLML_RL(**input)
-    #training_setup.train()
+    # train the model
+    training_setup = HLML_RL(**user_input)
+    training_setup.train(**train_input)
 
+    # render the trained model
     training_setup.render(save=True, show=False)

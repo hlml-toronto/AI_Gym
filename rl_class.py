@@ -1,10 +1,14 @@
-from gym.spaces import Box, Discrete
 import gym, torch, os
-from importlib import import_module
-import torch.nn as nn
-from matplotlib import animation
 import matplotlib.pyplot as plt
+import torch.nn as nn
+from gym.spaces import Box, Discrete
+from importlib import import_module
+from matplotlib import animation
+
 import utils.test_policy as test_policy
+from presets import DEFAULT_KWARGS, IMPLEMENTED_ALGOS
+from utils.mpi_tools import mpi_fork
+from utils.run_utils import setup_logger_kwargs
 
 
 class HLML_ActorCritic(nn.Module):
@@ -68,6 +72,7 @@ class HLML_ActorCritic(nn.Module):
     def act(self, obs):
         return self.step(obs)[0]
 
+
 class HLML_RL:
     """
     Base class for easy reinforcement learning with OpenAI Gym.
@@ -107,7 +112,7 @@ class HLML_RL:
         self.model_list = kwargs['model_list']
         self.env = kwargs['env']
         # Check that requested training algorithm is implemented
-        assert self.training_alg in ['vpg']
+        assert self.training_alg in IMPLEMENTED_ALGOS
         # Check that the environment has been tested
         if self.env not in ['LunarLander-v2']:
             print("The current environment has not been tested. Run at your own risk!")
@@ -117,42 +122,28 @@ class HLML_RL:
         Run the training algorithm to optimize model parameters for the
         environment provided.
         """
-        # Define default parameters for each training algorithm
-        default_kwargs = {'vpg': {'env': lambda: gym.make(self.env),
-                                  'ac_kwargs': dict(hidden_sizes=[64]*2),
-                                  'gamma': 0.99,
-                                  'seed': 0,
-                                  'cpu': 1,
-                                  'steps': 4000,
-                                  'epochs': 50,
-                                  'exp_name': 'vpg'}
-                          }
-        IO = default_kwargs[self.training_alg]  # Select appropriate kwargs
-        IO.update(kwargs)  # update with user input
+        # Define default parameters for each training algorithm, then perturb them based on user input
+        IO = DEFAULT_KWARGS[self.training_alg]          # select default kwargs for the algo
+        IO.update({'env': lambda: gym.make(self.env)})  # update with class environment
+        IO.update(kwargs)                               # update default algo kwargs based on user input
 
-        # Dynamically import source code
-        mod = import_module("algos.{}.{}".format(self.training_alg
-                                                    , self.training_alg))
-        method = getattr(mod, self.training_alg)
+        # Dynamically import source code (e.g. import algos.vpg.vpg as mod)
+        mod = import_module("algos.{}.{}".format(self.training_alg, self.training_alg))
+        method = getattr(mod, self.training_alg)                             # e.g. from algos.vpg.vpg import vpg
         if self.model_list is None:
-            core = import_module("algos.{}.core".format(self.training_alg))
-            actorCritic = getattr(core, "MLPActorCritic")
+            core = import_module("algos.{}.core".format(self.training_alg))  # e.g. import algos.vpg.core as core
+            actorCritic = getattr(core, "MLPActorCritic")                    # e.g. from core import MLPActorCritic as actorCritic
         else:
             actorCritic = HLML_ActorCritic
-            IO['ac_kwargs'] = {'model_list': self.model_list
-                                , 'training_alg': self.training_alg}
-
-        from utils.mpi_tools import mpi_fork
+            IO['ac_kwargs'] = {'model_list': self.model_list,
+                               'training_alg': self.training_alg}
 
         mpi_fork(IO['cpu'])  # run parallel code with mpi
-
-        from utils.run_utils import setup_logger_kwargs
         logger_kwargs = setup_logger_kwargs(IO['exp_name'], IO['seed'])
 
         method(IO['env'], actor_critic=actorCritic, ac_kwargs=IO['ac_kwargs'],
                gamma=IO['gamma'], seed=IO['seed'], steps_per_epoch=IO['steps'],
                epochs=IO['epochs'], logger_kwargs=logger_kwargs)
-
 
     # Load to pick up training where left
     # off?
@@ -184,10 +175,8 @@ class HLML_RL:
             Ensure you have imagemagick installed with
             sudo apt-get install imagemagick
             """
-            def save_frames_as_gif(frames, path=save_path
-                                            , filename='/gym_animation.gif'):
-
-                #Mess with this to change frame size
+            def save_frames_as_gif(frames, path=save_path, filename='/gym_animation.gif'):
+                # Mess with this to change frame size
                 plt.figure(figsize=(frames[0].shape[1] / 72.0
                             , frames[0].shape[0] / 72.0), dpi=72)
                 patch = plt.imshow(frames[0]); plt.axis('off')
@@ -195,17 +184,16 @@ class HLML_RL:
                 def animate(i):
                     patch.set_data(frames[i])
 
-                anim = animation.FuncAnimation(plt.gcf(), animate
-                                        , frames = len(frames), interval=50)
+                anim = animation.FuncAnimation(plt.gcf(), animate, frames=len(frames), interval=50)
                 anim.save(path + filename, writer='imagemagick', fps=60)
 
-            #Make gym env
+            # Make gym env
             env = gym.make(self.env)
 
-            #Run the env
+            # Run the env
             obs = env.reset(); frames = []
             for t in range(1000):
-                #Render to frames buffer
+                # Render to frames buffer
                 frames.append(env.render(mode="rgb_array"))
                 action = self.ac.act(torch.as_tensor(obs, dtype=torch.float32))
                 obs, res, done, _ = env.step(action)
