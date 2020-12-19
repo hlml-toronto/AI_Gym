@@ -1,11 +1,18 @@
 import gym
 import torch
 import torch.nn as nn
+from gym.spaces import Box, Discrete
 from torch.distributions.categorical import Categorical
 
 import algos.vpg.core as core
 from presets import outdir_from_preset
 from rl_class import HLML_RL
+
+
+# Environments to choose from:  https://github.com/openai/gym/wiki/Table-of-environments (box = continuous)
+#  - 'LunarLander-v2'            (discrete action space)
+#  - 'MountainCarContinuous-v0'  (continuous action space)
+#  - 'BipedalWalker-v3'          (continuous action space)       - Hard
 
 
 # TODO determine if these are VPG specific; move if so
@@ -52,29 +59,52 @@ class myCritic(nn.Module):
 
 if __name__ == '__main__':
     # general user choices
-    user_input = {'training_alg': 'vpg',             # choose a training algoirthm (e.g. 'vpg')
-                  'training_alg_variant': 'HLML',    # choose 'HLML' or 'spinningup' algorithm variant
-                  'env_str': 'LunarLander-v2',       # choose an experiment
-                  'ncpu': 1,                         # MPI multithreading (some algos will not support)  # TODO gpu argument ?
-                  'run_name': None}                  # str: custom name for your training run
+    #  - training_alg:            (str) choose a training algorithm (e.g. 'vpg' or 'ddpg')
+    #  - training_alg_variant:    (str) choose algorithm variant: 'HLML' or 'spinningup'
+    #  - env_str:                 (str) e.g. 'LunarLander-v2' or 'MountainCarContinuous-v0'
+    #  - training_alg:            (str) choose a training algoirthm (e.g. 'vpg')
+    #  - ncpu:                    (int) MPI multithreading (some algos will not support)  # TODO gpu flag arg as well?
+    #  - run_name:                (str) custom name for your training run
+    user_input = {'training_alg': 'vpg',
+                  'training_alg_variant': 'spinningup',
+                  'env_str': 'LunarLander-v2',
+                  'ncpu': 1,
+                  'run_name': None}
 
-    # detailed user choices: specify overrides for the defaults found in master dict PRESETS in presets.py
-    train_input = {'epochs': 1}
+    # detailed user choices: specify overrides for algorithm defaults found in master dict PRESETS in presets.py
+    train_input = {'epochs': 1,
+                   'steps_per_epoch': 1000}
 
     # specify output directory
+    # TODO should env be in output folder name?
     default_out = outdir_from_preset(user_input['training_alg'], user_input['training_alg_variant'])
     if user_input['run_name'] is not None:
         user_out = default_out + '_' + user_input['run_name']
     user_input['exp_name'] = default_out
 
     # build custom actor critic nn modules
-    # TODO maybe move this out, see comments in presets.py
-    test_env = gym.make(user_input['env_str'])
-    obs_dim = test_env.observation_space.shape[0]
-    act_dim = test_env.action_space.n
-    pi = myActor(obs_dim, act_dim, (64, 64), nn.Tanh)
-    v = myCritic(obs_dim, (32, 32),  nn.Tanh)
-    user_input['model_list'] = [pi, v]            # specify nn modules here
+    if user_input['training_alg_variant'] == 'HLML':
+        # TODO maybe move this out, see comments in presets.py
+        # TODO need resolve 'Box' object has no attribute 'n' when using cts environment like 'MountainCarContinuous-v0'
+        # TODO build helper fn for enviro -> act_dim, obs_dim
+        test_env = gym.make(user_input['env_str'])
+        # get obj_dim
+        if isinstance(test_env.observation_space, Box):
+            obs_dim = test_env.observation_space.shape[0]
+        else:
+            assert isinstance(test_env.observation_space, Discrete)
+            obs_dim = test_env.observation_space.n
+        # get act_dim
+        if isinstance(test_env.action_space, Box):
+            act_dim = test_env.observation_space.shape[0]
+        else:
+            assert isinstance(test_env.action_space, Discrete)
+            act_dim = test_env.observation_space.n
+        pi = myActor(obs_dim, act_dim, (64, 64), nn.Tanh)
+        v = myCritic(obs_dim, (32, 32),  nn.Tanh)
+        user_input['model_list'] = [pi, v]            # specify nn modules here
+    else:
+        user_input['model_list'] = None
 
     # train the model
     training_setup = HLML_RL(**user_input)
