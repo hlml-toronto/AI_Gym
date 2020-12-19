@@ -6,12 +6,15 @@ from importlib import import_module
 from matplotlib import animation
 
 import utils.test_policy as test_policy
-from presets import DEFAULT_KWARGS, IMPLEMENTED_ALGOS
+from presets import PRESETS, IMPLEMENTED_ALGOS, TESTED_ENVS, DEFAULT_NCPU
 from utils.mpi_tools import mpi_fork
 from utils.run_utils import setup_logger_kwargs
 
 
 class HLML_ActorCritic(nn.Module):
+    # TODO maybe move this out; see presets.py
+    # TODO how much is vpg specific? should we have one 'customized' function for each algo?
+    # TODO maybe it should be model dict instead of model list? then it'd be {'pi': pi, 'v': v, '???': ???}
     """
     Custom Actor/Critic class allows the user to define their own PyTorch models
 
@@ -41,13 +44,12 @@ class HLML_ActorCritic(nn.Module):
             self.pi = ac_kwargs['model_list'][0]
             self.v = ac_kwargs['model_list'][1]
         else:
-            raise NotImplementedError("The training algorithm requested has not\
-                                        been implemented")
+            raise NotImplementedError("The training algorithm requested has not been implemented")
 
         # Check that user models are compatible with algorithm
         core = import_module("algos.{}.core".format(ac_kwargs['training_alg']))
         assert issubclass(type(self.pi), core.Actor)  # pi should have Actor methods
-        hasattr(self.v, 'forward')  # v should have forward method
+        hasattr(self.v, 'forward')                    # v should have forward method
 
         if isinstance(action_space, Box):
             test_act = self.pi._distribution(observation_space.sample())
@@ -58,8 +60,7 @@ class HLML_ActorCritic(nn.Module):
         elif isinstance(action_space, Discrete):
             test_act = self.pi._distribution(torch.from_numpy(observation_space.sample()))
             if isinstance(test_act, int):
-                raise TypeError("\nThe expected output of pi is a discrete\
-                                    action represented by an integer\n")
+                raise TypeError("\nThe expected output of pi is a discrete action represented by an integer\n")
 
     def step(self, obs):
         with torch.no_grad():
@@ -83,6 +84,8 @@ class HLML_RL:
     ----------
     training_alg : str
         A keyword string indicating which training algorithm to use
+    training_alg_variant : str
+        A keyword string indicating which variant of the algorithm to use ('spinningup' or 'HLML')
     model_list : list
         (default value is None)
         A list of PyTorch models needed to run the indicated training algorithm.
@@ -107,52 +110,67 @@ class HLML_RL:
     save()
         Store the current parameterization of the RL agent for future use
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         self.training_alg = kwargs['training_alg']
+        self.alg_variant = kwargs['training_alg_variant']
         self.model_list = kwargs['model_list']
-        self.env = kwargs['env']
-        # Check that requested training algorithm is implemented
+        self.env_str = kwargs['env_str']
+        self.env = lambda: gym.make(self.env_str)
+        self.ncpu = kwargs['ncpu']
+        self.exp_name = kwargs['exp_name']
+
+        # check algorithm is implemented and environment has been tested
         assert self.training_alg in IMPLEMENTED_ALGOS
-        # Check that the environment has been tested
-        if self.env not in ['LunarLander-v2']:
+        if self.env_str not in TESTED_ENVS:
             print("The current environment has not been tested. Run at your own risk!")
 
-    def train(self, *args, **kwargs):
+    def train(self, **kwargs):
         """
         Run the training algorithm to optimize model parameters for the
         environment provided.
         """
-        # Define default parameters for each training algorithm, then perturb them based on user input
-        IO = DEFAULT_KWARGS[self.training_alg]          # select default kwargs for the algo
-        IO.update({'env': lambda: gym.make(self.env)})  # update with class environment
-        IO.update(kwargs)                               # update default algo kwargs based on user input
+        # define default parameters for each training algorithm, then perturb them based on user input
+        preset_kwargs = PRESETS[self.training_alg][self.alg_variant]   # select default kwargs for the algo
+        preset_kwargs.update(kwargs)                                   # update default algo kwargs based on user input
 
-        # Dynamically import source code (e.g. import algos.vpg.vpg as mod)
+        # dynamically import source code (e.g. import algos.vpg.vpg as mod)
         mod = import_module("algos.{}.{}".format(self.training_alg, self.training_alg))
-        method = getattr(mod, self.training_alg)                             # e.g. from algos.vpg.vpg import vpg
+        method = getattr(mod, self.training_alg)  # e.g. from algos.vpg.vpg import vpg
+
+        # TODO maybe move this out; see presets.py
         if self.model_list is None:
+            # use the default actorCritic for the algo
             core = import_module("algos.{}.core".format(self.training_alg))  # e.g. import algos.vpg.core as core
-            actorCritic = getattr(core, "MLPActorCritic")                    # e.g. from core import MLPActorCritic as actorCritic
+            actorCritic = getattr(core, "MLPActorCritic")  # e.g. from core import MLPActorCritic as actorCritic
         else:
+            # use a customized actorCritic for the algo
             actorCritic = HLML_ActorCritic
-            IO['ac_kwargs'] = {'model_list': self.model_list,
-                               'training_alg': self.training_alg}
+            preset_kwargs['ac_kwargs'] = {'model_list': self.model_list,
+                                          'training_alg': self.training_alg}
 
-        mpi_fork(IO['cpu'])  # run parallel code with mpi
-        logger_kwargs = setup_logger_kwargs(IO['exp_name'], IO['seed'])
+        # prepare mpi if self.ncpu > 1 (and supported by chosen RL algorithm)
+        mpi_fork(self.ncpu)  # run parallel code with mpi
 
+        # update logger kwargs
+        logger_kwargs = setup_logger_kwargs(self.exp_name, preset_kwargs['seed'])
+        preset_kwargs['logger_kwargs'] = logger_kwargs
+
+        """
         method(IO['env'], actor_critic=actorCritic, ac_kwargs=IO['ac_kwargs'],
-               gamma=IO['gamma'], seed=IO['seed'], steps_per_epoch=IO['steps'],
-               epochs=IO['epochs'], logger_kwargs=logger_kwargs)
+               gamma=IO['gamma'], seed=IO['seed'], steps_per_epoch=IO['steps_per_epoch'],
+               epochs=IO['epochs'], logger_kwargs=logger_kwargs)"""
+        # begin training  # TODO I think **IO will unpack all needed kwargs, trying as below
+        method(self.env, actor_critic=actorCritic, **preset_kwargs)
 
     # Load to pick up training where left
     # off?
     def load_agent(self, seed=0):
         # TODO change so that the seed is part of the class?
         seed = 0
-        pytsave_path = os.path.join("experiments", self.training_alg
-                                    , self.training_alg + "_s" + str(seed)
-                                    , 'pyt_save')
+        pytsave_path = os.path.join("experiments",
+                                    self.training_alg,
+                                    self.training_alg + "_s" + str(seed),
+                                    'pyt_save')
         self.ac = torch.load(os.path.join(pytsave_path, "model.pt"))
         return pytsave_path
 
@@ -164,10 +182,8 @@ class HLML_RL:
         if show:
             render = True; max_ep_len = None; num_episodes = 20; itr = 'last'
             deterministic = 100
-            env, get_action = test_policy.load_policy_and_env(save_path
-                                        , itr, deterministic)
-            test_policy.run_policy(env, get_action, max_ep_len, num_episodes
-                                        , render)
+            env, get_action = test_policy.load_policy_and_env(save_path, itr, deterministic)
+            test_policy.run_policy(env, get_action, max_ep_len, num_episodes, render)
         if save:
             """
             Code from botforge:
@@ -177,8 +193,8 @@ class HLML_RL:
             """
             def save_frames_as_gif(frames, path=save_path, filename='/gym_animation.gif'):
                 # Mess with this to change frame size
-                plt.figure(figsize=(frames[0].shape[1] / 72.0
-                            , frames[0].shape[0] / 72.0), dpi=72)
+                plt.figure(figsize=(frames[0].shape[1] / 72.0,
+                                    frames[0].shape[0] / 72.0), dpi=72)
                 patch = plt.imshow(frames[0]); plt.axis('off')
 
                 def animate(i):
@@ -188,7 +204,7 @@ class HLML_RL:
                 anim.save(path + filename, writer='imagemagick', fps=60)
 
             # Make gym env
-            env = gym.make(self.env)
+            env = gym.make(self.env_str)
 
             # Run the env
             obs = env.reset(); frames = []
