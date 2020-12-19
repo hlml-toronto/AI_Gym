@@ -35,7 +35,7 @@ PRESETS = {'vpg':
                      'steps_per_epoch': 4000,
                      'epochs': 50,
                      'pi_lr': 3e-4,
-                     'vf_lr': 1e-3,
+                     'vf_lr': 1e-3,            # unique to vpg (not in ddpg)
                      'max_ep_len': 1000,
                      'save_freq': 10,
                      'logger_kwargs': dict(),
@@ -62,7 +62,7 @@ PRESETS = {'vpg':
                      'steps_per_epoch': 4000,
                      'epochs': 100,
                      'pi_lr': 1e-3,
-                     'vf_lr': 1e-3,
+                     'q_lr': 1e-3,              # unique to ddpg (not in vpg)
                      'max_ep_len': 1000,
                      'save_freq': 1,
                      'logger_kwargs': dict(),
@@ -80,7 +80,7 @@ PRESETS = {'vpg':
                      'steps_per_epoch': 4000,
                      'epochs': 100,
                      'pi_lr': 1e-3,
-                     'vf_lr': 1e-3,
+                     'q_lr': 1e-3,
                      'max_ep_len': 1000,
                      'save_freq': 1,
                      'logger_kwargs': dict(),

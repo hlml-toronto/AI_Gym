@@ -124,6 +124,9 @@ class HLML_RL:
         if self.env_str not in TESTED_ENVS:
             print("The current environment has not been tested. Run at your own risk!")
 
+        # TODO algo versus environment compatibility check
+        #  e.g. spinningup ddpg assumes continuous action space, lunar lander is discrete though
+
     def train(self, **kwargs):
         """
         Run the training algorithm to optimize model parameters for the
@@ -168,8 +171,8 @@ class HLML_RL:
         # TODO change so that the seed is part of the class?
         seed = 0
         pytsave_path = os.path.join("experiments",
-                                    self.training_alg,
-                                    self.training_alg + "_s" + str(seed),
+                                    self.exp_name,
+                                    self.exp_name + "_s" + str(seed),
                                     'pyt_save')
         self.ac = torch.load(os.path.join(pytsave_path, "model.pt"))
         return pytsave_path
