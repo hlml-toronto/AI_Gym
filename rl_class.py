@@ -2,6 +2,7 @@ import gym, torch, os
 import matplotlib.pyplot as plt
 import torch.nn as nn
 from gym.spaces import Box, Discrete
+from gym.spaces.box import Box as altBoxType
 from importlib import import_module
 from matplotlib import animation
 
@@ -9,6 +10,28 @@ import utils.test_policy as test_policy
 from presets import PRESETS, IMPLEMENTED_ALGOS, TESTED_ENVS, DEFAULT_NCPU
 from utils.mpi_tools import mpi_fork
 from utils.run_utils import setup_logger_kwargs
+
+
+def get_IO_dim(env_name):
+    """ Given an environment name, return act_dim, obs_dim representing the
+    dimension of the action vector and the dimension of the state vector
+    respectively.
+    """
+    test_env = gym.make(env_name)
+    # get obj_dim
+    if isinstance(test_env.observation_space, Box):
+        obs_dim = test_env.observation_space.shape[0]
+    else:
+        assert isinstance(test_env.observation_space, Discrete)
+        obs_dim = test_env.observation_space.n
+    # get act_dim
+    if isinstance(test_env.action_space, Box) or type(test_env.observation_space) == altBoxType:
+        act_dim = test_env.observation_space.shape[0]
+    else:
+        assert isinstance(test_env.action_space, Discrete)
+        act_dim = test_env.observation_space.n
+
+    return act_dim, obs_dim
 
 
 class HLML_ActorCritic(nn.Module):

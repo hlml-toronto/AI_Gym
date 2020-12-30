@@ -6,7 +6,7 @@ from torch.distributions.categorical import Categorical
 
 import algos.vpg.core as core
 from presets import outdir_from_preset
-from rl_class import HLML_RL
+from rl_class import HLML_RL, get_IO_dim
 
 
 # Environments to choose from:  https://github.com/openai/gym/wiki/Table-of-environments (box = continuous)
@@ -76,8 +76,8 @@ if __name__ == '__main__':
                    'steps_per_epoch': 1000}
 
     # specify output directory
-    # TODO should env be in output folder name?
     default_out = outdir_from_preset(user_input['training_alg'], user_input['training_alg_variant'])
+    default_out += '_' + user_input['env_str']  # include env in out dir
     if user_input['run_name'] is not None:
         user_out = default_out + '_' + user_input['run_name']
     user_input['exp_name'] = default_out
@@ -85,21 +85,7 @@ if __name__ == '__main__':
     # build custom actor critic nn modules
     if user_input['training_alg_variant'] == 'HLML':
         # TODO maybe move this out, see comments in presets.py
-        # TODO need resolve 'Box' object has no attribute 'n' when using cts environment like 'MountainCarContinuous-v0'
-        # TODO build helper fn for enviro -> act_dim, obs_dim
-        test_env = gym.make(user_input['env_str'])
-        # get obj_dim
-        if isinstance(test_env.observation_space, Box):
-            obs_dim = test_env.observation_space.shape[0]
-        else:
-            assert isinstance(test_env.observation_space, Discrete)
-            obs_dim = test_env.observation_space.n
-        # get act_dim
-        if isinstance(test_env.action_space, Box):
-            act_dim = test_env.observation_space.shape[0]
-        else:
-            assert isinstance(test_env.action_space, Discrete)
-            act_dim = test_env.observation_space.n
+        act_dim, obs_dim = get_IO_dim(user_input['env_str'])
         pi = myActor(obs_dim, act_dim, (64, 64), nn.Tanh)
         v = myCritic(obs_dim, (32, 32),  nn.Tanh)
         user_input['model_list'] = [pi, v]            # specify nn modules here
