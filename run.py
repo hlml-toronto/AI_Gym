@@ -57,6 +57,32 @@ class myCritic(nn.Module):
         return torch.squeeze(self.v_net(obs), -1)  # Critical to ensure v has right shape.
 
 
+class myActorCritic(nn.Module):
+    """Sample code for a custom ActorCritic class to be used with the VPG
+    training algorithm.
+    """
+    def __init__(self, obs_env, act_env, hidden_sizes=(64, 64),
+                 activation=nn.Tanh):
+        super().__init__()
+        obs_dim, act_dim = get_IO_dim((obs_env, act_env))
+        # policy builder depends on action space
+        self.pi = myActor(obs_dim, act_dim, hidden_sizes, activation)
+
+        # build value function
+        self.v = myCritic(obs_dim, hidden_sizes, activation)
+
+    def step(self, obs):
+        with torch.no_grad():
+            pi = self.pi._distribution(obs)
+            a = pi.sample()
+            logp_a = self.pi._log_prob_from_distribution(pi, a)
+            v = self.v(obs)
+        return a.numpy(), v.numpy(), logp_a.numpy()
+
+    def act(self, obs):
+        return self.step(obs)[0]
+
+
 if __name__ == '__main__':
     # general user choices
     #  - training_alg:            (str) choose a training algorithm (e.g. 'vpg' or 'ddpg')
@@ -66,7 +92,7 @@ if __name__ == '__main__':
     #  - ncpu:                    (int) MPI multithreading (some algos will not support)  # TODO gpu flag arg as well?
     #  - run_name:                (str) custom name for your training run
     user_input = {'training_alg': 'vpg',
-                  'training_alg_variant': 'spinningup',
+                  'training_alg_variant': 'HLML',
                   'env_str': 'LunarLander-v2',
                   'ncpu': 1,
                   'run_name': None}
@@ -85,15 +111,15 @@ if __name__ == '__main__':
     # build custom actor critic nn modules
     if user_input['training_alg_variant'] == 'HLML':
         # TODO maybe move this out, see comments in presets.py
-        act_dim, obs_dim = get_IO_dim(user_input['env_str'])
-        pi = myActor(obs_dim, act_dim, (64, 64), nn.Tanh)
-        v = myCritic(obs_dim, (32, 32),  nn.Tanh)
-        user_input['model_list'] = [pi, v]            # specify nn modules here
+        user_input['actorCritic'] = myActorCritic
     else:
-        user_input['model_list'] = None
+        user_input['actorCritic'] = None
 
     # train the model
     training_setup = HLML_RL(**user_input)
+    if user_input['training_alg_variant'] == 'HLML':
+        print("The user's custom ActorCritic class should adhere to the following documentation\n\n\n")
+        training_setup.ac_help()  # print the documentation for a custom ActorCritic
     training_setup.train(**train_input)
 
     # render the trained model

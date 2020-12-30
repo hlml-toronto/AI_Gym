@@ -1,4 +1,4 @@
-import gym, torch, os
+import gym, torch, os, re
 import matplotlib.pyplot as plt
 import torch.nn as nn
 from gym.spaces import Box, Discrete
@@ -12,89 +12,33 @@ from utils.mpi_tools import mpi_fork
 from utils.run_utils import setup_logger_kwargs
 
 
-def get_IO_dim(env_name):
-    """ Given an environment name, return act_dim, obs_dim representing the
-    dimension of the action vector and the dimension of the state vector
-    respectively.
+def get_IO_dim(arg):
+    """ Given an environment name or a tuple of (observation space, action space),
+    return obs_dim, act_dim representing the dimension of the state vector and
+    the dimension of the action vector respectively.
     """
-    test_env = gym.make(env_name)
+    if type(arg) == str:  # input is AI Gym environment name
+        test_env = gym.make(arg)
+        observation_space = test_env.observation_space
+        action_space = test_env.action_space
+    elif type(arg) == tuple:  # input is (observation space, action space)
+        observation_space, action_space = arg
+    else:
+        raise TypeError("Did not recognize type of input to get_IO_dim()")
     # get obj_dim
-    if isinstance(test_env.observation_space, Box):
-        obs_dim = test_env.observation_space.shape[0]
+    if isinstance(observation_space, Box):
+        obs_dim = observation_space.shape[0]
     else:
-        assert isinstance(test_env.observation_space, Discrete)
-        obs_dim = test_env.observation_space.n
+        assert isinstance(observation_space, Discrete)
+        obs_dim = observation_space.n
     # get act_dim
-    if isinstance(test_env.action_space, Box) or type(test_env.observation_space) == altBoxType:
-        act_dim = test_env.observation_space.shape[0]
+    if isinstance(action_space, Box) or type(action_space) == altBoxType:
+        act_dim = action_space.shape[0]
     else:
-        assert isinstance(test_env.action_space, Discrete)
-        act_dim = test_env.observation_space.n
+        assert isinstance(action_space, Discrete)
+        act_dim = action_space.n
 
-    return act_dim, obs_dim
-
-
-class HLML_ActorCritic(nn.Module):
-    # TODO maybe move this out; see presets.py
-    # TODO how much is vpg specific? should we have one 'customized' function for each algo?
-    # TODO maybe it should be model dict instead of model list? then it'd be {'pi': pi, 'v': v, '???': ???}
-    """
-    Custom Actor/Critic class allows the user to define their own PyTorch models
-
-    Must take initialization arguments: observation_space, action_space, **ac_kwargs
-
-    Attributes
-    ----------
-    Determined by the training algorithm specified in ac_kwargs.
-
-    For VPG
-        pi : algos.vpg.core.Actor
-            The policy distribution model, which must follow the Actor class template
-        v : nn.Module
-            The PyTorch model for the on-policy value function
-
-    Methods
-    -------
-    step():
-        given an observation from the environment, apply pi and v to get the
-        next state, and return the chosen action, value, and logp of the action
-    act():
-        performs step() but only returns the action
-    """
-    def __init__(self, observation_space, action_space, **ac_kwargs):
-        super().__init__()
-        if ac_kwargs['training_alg'] == 'vpg':
-            self.pi = ac_kwargs['model_list'][0]
-            self.v = ac_kwargs['model_list'][1]
-        else:
-            raise NotImplementedError("The training algorithm requested has not been implemented")
-
-        # Check that user models are compatible with algorithm
-        core = import_module("algos.{}.core".format(ac_kwargs['training_alg']))
-        assert issubclass(type(self.pi), core.Actor)  # pi should have Actor methods
-        hasattr(self.v, 'forward')                    # v should have forward method
-
-        if isinstance(action_space, Box):
-            test_act = self.pi._distribution(observation_space.sample())
-            true_act = action_space.sample()
-            if len(test_act) != len(true_act):
-                raise TypeError("\nThe output of pi is of length {} but a\
-                    vector of length {} was expected\n".format(test_act, true_act))
-        elif isinstance(action_space, Discrete):
-            test_act = self.pi._distribution(torch.from_numpy(observation_space.sample()))
-            if isinstance(test_act, int):
-                raise TypeError("\nThe expected output of pi is a discrete action represented by an integer\n")
-
-    def step(self, obs):
-        with torch.no_grad():
-            pi = self.pi._distribution(obs)
-            a = pi.sample()
-            logp_a = self.pi._log_prob_from_distribution(pi, a)
-            v = self.v(obs)
-        return a.numpy(), v.numpy(), logp_a.numpy()
-
-    def act(self, obs):
-        return self.step(obs)[0]
+    return obs_dim, act_dim
 
 
 class HLML_RL:
@@ -109,9 +53,10 @@ class HLML_RL:
         A keyword string indicating which training algorithm to use
     training_alg_variant : str
         A keyword string indicating which variant of the algorithm to use ('spinningup' or 'HLML')
-    model_list : list
+    actorCritic : nn.Module
         (default value is None)
-        A list of PyTorch models needed to run the indicated training algorithm.
+        An instance of a PyTorch module implementing an actor and a critic,
+        as specified by the training algorithm.
 
         If None is passed then default arguments from core.MLPActorCritic will
         be used, and default PyTorch models will be generated. If the default
@@ -122,6 +67,9 @@ class HLML_RL:
 
     Methods
     -------
+    ac_help()
+        Prints documentation for the ActorCritic class needed given the
+        training algorithm chosen, to help the user build a custom ActorCritic
     train()
         Trains the RL agent on the environment `env` according to the algorithm
         specified by `training_alg`, using the models provided in `model_list`
@@ -136,7 +84,7 @@ class HLML_RL:
     def __init__(self, **kwargs):
         self.training_alg = kwargs['training_alg']
         self.alg_variant = kwargs['training_alg_variant']
-        self.model_list = kwargs['model_list']
+        self.actorCritic = kwargs['actorCritic']
         self.env_str = kwargs['env_str']
         self.env = lambda: gym.make(self.env_str)
         self.ncpu = kwargs['ncpu']
@@ -149,6 +97,21 @@ class HLML_RL:
 
         # TODO algo versus environment compatibility check
         #  e.g. spinningup ddpg assumes continuous action space, lunar lander is discrete though
+
+    def ac_help(self):
+        """Prints the documentation for the ActorCritic class specific to the
+        user's selected training algorithm.
+        """
+        # dynamically import source code (e.g. import algos.vpg.vpg as mod)
+        mod = import_module("algos.{}.{}".format(self.training_alg, self.training_alg))
+        method = getattr(mod, self.training_alg)  # e.g. from algos.vpg.vpg import vpg
+        docstring = method.__doc__
+        actor_critic_doc = re.search('actor_critic:(.*)ac_kwargs',
+                                     docstring, re.DOTALL).group(1)
+        head = self.training_alg.upper() + "_ActorCritic\n\t\"\"\"\n\t"
+        foot = "\"\"\""
+        actor_critic_doc = head + actor_critic_doc + foot
+        print(actor_critic_doc)
 
     def train(self, **kwargs):
         """
@@ -164,15 +127,10 @@ class HLML_RL:
         method = getattr(mod, self.training_alg)  # e.g. from algos.vpg.vpg import vpg
 
         # TODO maybe move this out; see presets.py
-        if self.model_list is None:
+        if self.actorCritic is None:
             # use the default actorCritic for the algo
             core = import_module("algos.{}.core".format(self.training_alg))  # e.g. import algos.vpg.core as core
-            actorCritic = getattr(core, "MLPActorCritic")  # e.g. from core import MLPActorCritic as actorCritic
-        else:
-            # use a customized actorCritic for the algo
-            actorCritic = HLML_ActorCritic
-            preset_kwargs['ac_kwargs'] = {'model_list': self.model_list,
-                                          'training_alg': self.training_alg}
+            self.actorCritic = getattr(core, "MLPActorCritic")  # e.g. from core import MLPActorCritic as actorCritic
 
         # prepare mpi if self.ncpu > 1 (and supported by chosen RL algorithm)
         mpi_fork(self.ncpu)  # run parallel code with mpi
@@ -186,10 +144,9 @@ class HLML_RL:
                gamma=IO['gamma'], seed=IO['seed'], steps_per_epoch=IO['steps_per_epoch'],
                epochs=IO['epochs'], logger_kwargs=logger_kwargs)"""
         # begin training  # TODO I think **IO will unpack all needed kwargs, trying as below
-        method(self.env, actor_critic=actorCritic, **preset_kwargs)
+        method(self.env, actor_critic=self.actorCritic, **preset_kwargs)
 
-    # Load to pick up training where left
-    # off?
+    # Load to pick up training where left off?
     def load_agent(self, seed=0):
         # TODO change so that the seed is part of the class?
         seed = 0
@@ -245,7 +202,3 @@ class HLML_RL:
             save_frames_as_gif(frames)
 
         return 0
-
-    # Done automatically.
-    def save_agent(self, save_path):
-        raise NotImplementedError
