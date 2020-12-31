@@ -1,3 +1,5 @@
+from importlib import import_module
+
 # choose if MPI multi-threading (n > 1) or not (n = 1)
 DEFAULT_NCPU = 1
 
@@ -97,8 +99,13 @@ PRESETS = {'vpg':
 
 IMPLEMENTED_ALGOS = PRESETS.keys()
 
+# provides a default ActorCritic
+DEFAULT_ACTOR_CRITIC = {"vpg": "MLPActorCritic",
+                       "ddpg": "MLPActorCritic"}
+
 
 # how the experiment directories are written
-def outdir_from_preset(algo, variant):
-    experiment_name = '%s_%s' % (algo, variant)  # e.g. 'vpg_HLML' or 'vpg_spinningup'
+def outdir_from_preset(algo, variant, exp):
+    # e.g. 'vpg_HLML_LunarLander-v2' or 'vpg_spinningup_LunarLander-v2'
+    experiment_name = '%s_%s_%s' % (algo, variant, exp)
     return experiment_name

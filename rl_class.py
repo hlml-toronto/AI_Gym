@@ -6,7 +6,7 @@ from importlib import import_module
 from matplotlib import animation
 
 import utils.test_policy as test_policy
-from presets import PRESETS, IMPLEMENTED_ALGOS, TESTED_ENVS, DEFAULT_NCPU
+from presets import PRESETS, IMPLEMENTED_ALGOS, TESTED_ENVS, DEFAULT_ACTOR_CRITIC
 from utils.mpi_tools import mpi_fork
 from utils.run_utils import setup_logger_kwargs
 from compatibility_checks import COMPATIBILITY_CHECKS
@@ -89,6 +89,7 @@ class HLML_RL:
         self.env = lambda: gym.make(self.env_str)
         self.ncpu = kwargs['ncpu']
         self.exp_name = kwargs['exp_name']
+        self.seed = kwargs.get('seed', 0)
 
         # check algorithm is implemented and environment has been tested
         assert self.training_alg in IMPLEMENTED_ALGOS
@@ -137,11 +138,10 @@ class HLML_RL:
         mod = import_module("algos.{}.{}".format(self.training_alg, self.training_alg))
         method = getattr(mod, self.training_alg)  # e.g. from algos.vpg.vpg import vpg
 
-        # TODO maybe move this out; see presets.py
         if self.actorCritic is None:
             # use the default actorCritic for the algo
             core = import_module("algos.{}.core".format(self.training_alg))  # e.g. import algos.vpg.core as core
-            self.actorCritic = getattr(core, "MLPActorCritic")  # e.g. from core import MLPActorCritic as actorCritic
+            self.actorCritic = getattr(core, DEFAULT_ACTOR_CRITIC[self.training_alg])  # e.g. from core import MLPActorCritic as actorCritic
 
         # prepare mpi if self.ncpu > 1 (and supported by chosen RL algorithm)
         mpi_fork(self.ncpu)  # run parallel code with mpi
@@ -150,17 +150,12 @@ class HLML_RL:
         logger_kwargs = setup_logger_kwargs(self.exp_name, preset_kwargs['seed'])
         preset_kwargs['logger_kwargs'] = logger_kwargs
 
-        """
-        method(IO['env'], actor_critic=actorCritic, ac_kwargs=IO['ac_kwargs'],
-               gamma=IO['gamma'], seed=IO['seed'], steps_per_epoch=IO['steps_per_epoch'],
-               epochs=IO['epochs'], logger_kwargs=logger_kwargs)"""
-        # begin training  # TODO I think **IO will unpack all needed kwargs, trying as below
+        # begin training
         method(self.env, actor_critic=self.actorCritic, **preset_kwargs)
 
-    # Load to pick up training where left off?
     def load_agent(self, seed=0):
-        # TODO change so that the seed is part of the class?
-        seed = 0
+        """Load to pick up training where left off
+        """
         pytsave_path = os.path.join("experiments",
                                     self.exp_name,
                                     self.exp_name + "_s" + str(seed),
@@ -168,9 +163,8 @@ class HLML_RL:
         self.ac = torch.load(os.path.join(pytsave_path, "model.pt"))
         return pytsave_path
 
-    def render(self, save=False, show=True, *args, **kwargs):
+    def render(self, seed=0, save=False, show=True, *args, **kwargs):
         # logger_kwargs = {'output_dir' : "Jeremy", "exp_name" : whichever}
-        seed = 0
         save_path = self.load_agent(seed)
 
         if show:

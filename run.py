@@ -12,8 +12,7 @@ from custom_ActorCritic import customActorCritic
 
 def main(user_input, train_input):
     # specify output directory
-    default_out = outdir_from_preset(user_input['training_alg'], user_input['training_alg_variant'])
-    default_out += '_' + user_input['env_str']  # include env in out dir
+    default_out = outdir_from_preset(user_input['training_alg'], user_input['training_alg_variant'], user_input['env_str'])
     if user_input['run_name'] is not None:
         default_out = default_out + '_' + user_input['run_name']
     user_input['exp_name'] = default_out
