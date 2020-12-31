@@ -2,7 +2,6 @@ import gym, torch, os, re
 import matplotlib.pyplot as plt
 import torch.nn as nn
 from gym.spaces import Box, Discrete
-from gym.spaces.box import Box as altBoxType
 from importlib import import_module
 from matplotlib import animation
 
@@ -10,6 +9,7 @@ import utils.test_policy as test_policy
 from presets import PRESETS, IMPLEMENTED_ALGOS, TESTED_ENVS, DEFAULT_NCPU
 from utils.mpi_tools import mpi_fork
 from utils.run_utils import setup_logger_kwargs
+from compatibility_checks import COMPATIBILITY_CHECKS
 
 
 def get_IO_dim(arg):
@@ -32,7 +32,7 @@ def get_IO_dim(arg):
         assert isinstance(observation_space, Discrete)
         obs_dim = observation_space.n
     # get act_dim
-    if isinstance(action_space, Box) or type(action_space) == altBoxType:
+    if isinstance(action_space, Box):
         act_dim = action_space.shape[0]
     else:
         assert isinstance(action_space, Discrete)
@@ -95,8 +95,19 @@ class HLML_RL:
         if self.env_str not in TESTED_ENVS:
             print("The current environment has not been tested. Run at your own risk!")
 
-        # TODO algo versus environment compatibility check
+        # algo versus environment compatibility check
         #  e.g. spinningup ddpg assumes continuous action space, lunar lander is discrete though
+        if self.training_alg in COMPATIBILITY_CHECKS.keys():
+            test_env = gym.make(self.env_str)
+            observation_space = test_env.observation_space
+            action_space = test_env.action_space
+            try:
+                assert type(observation_space) in COMPATIBILITY_CHECKS[self.training_alg][self.alg_variant]['obs_env']
+                assert type(action_space) in COMPATIBILITY_CHECKS[self.training_alg][self.alg_variant]['act_env']
+            except AssertionError:
+                raise AssertionError("\n\n\nThe gym environment and training algorithm selected are not compatible! Please check what type of action space and state space are required by your training algorithm, or try with a different gym environment.")
+        else:
+            print("The current training algorithm does not have any listed compatible environments. Run at your own risk!")
 
     def ac_help(self):
         """Prints the documentation for the ActorCritic class specific to the
