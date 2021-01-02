@@ -51,8 +51,9 @@ class HLML_RL:
     ----------
     training_alg : str
         A keyword string indicating which training algorithm to use
-    training_alg_variant : str
-        A keyword string indicating which variant of the algorithm to use ('spinningup' or 'HLML')
+    use_custom : Bool
+        A Boolean indicating whether or not to use a custom variant of the
+        ActorCritic during training
     actorCritic : nn.Module
         (default value is None)
         An instance of a PyTorch module implementing an actor and a critic,
@@ -83,7 +84,7 @@ class HLML_RL:
     """
     def __init__(self, **kwargs):
         self.training_alg = kwargs['training_alg']
-        self.alg_variant = kwargs['training_alg_variant']
+        self.use_custom = kwargs['use_custom']
         self.actorCritic = kwargs['actorCritic']
         self.env_str = kwargs['env_str']
         self.env = lambda: gym.make(self.env_str)
@@ -103,8 +104,8 @@ class HLML_RL:
             observation_space = test_env.observation_space
             action_space = test_env.action_space
             try:
-                assert type(observation_space) in COMPATIBILITY_CHECKS[self.training_alg][self.alg_variant]['obs_env']
-                assert type(action_space) in COMPATIBILITY_CHECKS[self.training_alg][self.alg_variant]['act_env']
+                assert type(observation_space) in COMPATIBILITY_CHECKS[self.training_alg]['obs_env']
+                assert type(action_space) in COMPATIBILITY_CHECKS[self.training_alg]['act_env']
             except AssertionError:
                 raise AssertionError("\n\n\nThe gym environment and training algorithm selected are not compatible! Please check what type of action space and state space are required by your training algorithm, or try with a different gym environment.")
         else:
@@ -131,8 +132,10 @@ class HLML_RL:
         environment provided.
         """
         # define default parameters for each training algorithm, then perturb them based on user input
-        preset_kwargs = PRESETS[self.training_alg][self.alg_variant]   # select default kwargs for the algo
-        preset_kwargs.update(kwargs)                                   # update default algo kwargs based on user input
+        preset_kwargs = PRESETS[self.training_alg]   # select default kwargs for the algo
+        if self.use_custom:  # do not pass default ac_kwargs if custom ActorCritic is specified
+            preset_kwargs.pop('ac_kwargs')
+        preset_kwargs.update(kwargs)                 # update default algo kwargs based on user input
 
         # dynamically import source code (e.g. import algos.vpg.vpg as mod)
         mod = import_module("algos.{}.{}".format(self.training_alg, self.training_alg))

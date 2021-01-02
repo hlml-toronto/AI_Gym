@@ -5,20 +5,10 @@ from gym.spaces import Box, Discrete
 # ------------------------------------------------------------------------------
 
 COMPATIBILITY_CHECKS = {'ddpg':
-                        {'spinningup':
-                            {'obs_env': [Box, Discrete],
-                             'act_env': [Box]},
-                         'HLML':
-                            {'obs_env': [Box, Discrete],
-                             'act_env': [Box]},
-                         },
+                        {'obs_env': [Box, Discrete],
+                         'act_env': [Box]},
 
                         'vpg':
-                        {'spinningup':
-                            {'obs_env': [Box, Discrete],
-                             'act_env': [Box, Discrete]},
-                         'HLML':
-                            {'obs_env': [Box, Discrete],
-                             'act_env': [Box, Discrete]},
-                         }
+                        {'obs_env': [Box, Discrete],
+                         'act_env': [Box, Discrete]},
                         }

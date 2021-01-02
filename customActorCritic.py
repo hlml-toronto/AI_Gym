@@ -10,6 +10,11 @@ from rl_class import get_IO_dim
 # in RL training in run.py
 # ------------------------------------------------------------------------------
 
+# specify the name of the training algorithm for your custom ActorCritic
+TRAINING_ALG = 'vpg'
+
+# write default hyperparameters for your custom ActorCritic
+CUSTOM_AC_DEFAULT_KWARGS = {}
 
 class customActor(core.Actor):
     """
