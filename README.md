@@ -10,10 +10,19 @@ in the context of a time-limited hackathon.
 The `HLML_RL` class is defined in `rl_class.py` and is the main object used for
 writing quick scripts such as `run.py` with custom PyTorch models. To build a
 custom model, the user must write their own ActorCritic in
-custom_ActorCritic.py, following the documentation provided by the
+customActorCritic.py, following the documentation provided by the
 `HLML_RL.ac_help()` method.
 
-**Training a model:**
+**Minimal user steps for training your own agent:**
+1) Choose an OpenAI RL environment: https://github.com/openai/gym/wiki/Table-of-environments. Default: `'LunarLander-v2'`.
+2) Choose a compatible RL training algorithm (see `compatibility_checks.py`). Default: `'vpg'`. 
+3) In `customActorCritic.py`, specify your chosen algorithm as `TRAINING_ALG` 
+4) In `customActorCritic.py`, specify your default algorithm hyperparameters in `CUSTOM_AC_DEFAULT_KWARGS`
+5) In `customActorCritic.py`, write an ActorCritic following the documentation provided by
+  the `HLML_RL.ac_help()` method.
+6) Train the model using `run.py` as described below. 
+
+**Training the model:**
 - Modify `user_input` in `run.py`, which is used to initialize an instance as `HLML_RL(**user_input)`
 - Modify  `train_input` in `run.py`, which is used to set hyperparameters for training in `HLML_RL.train(**train_input)`
 - Run `run.py`

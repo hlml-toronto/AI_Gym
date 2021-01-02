@@ -11,24 +11,7 @@ assert DEFAULT_VARIANT in ['spinningup', 'HLML']
 DEFAULT_ENV_STR = 'LunarLander-v2'
 TESTED_ENVS = ['LunarLander-v2']
 
-# define default parameters for each implemented training algorithm (and each variant)
-# TODO Large suggestion: we make separate 'custom' scripts for each algo,
-#  hlml_vpg.py, hlml_ddpg.py, ...
-#  the users construct their own nn's in these scripts (we provide our own simple templates)
-#  define the ac and w.e ac_kwargs are needed/manipulated there
-
-# TODO then we package everything centrally here as follows
-#  PRESETS['ddpg']['spinningup']['ac'] = getattr(core, "MLPActorCritic")
-#  PRESETS['ddpg']['spinningup']['ac_kwargs'] = dict(hidden_sizes=[64] * 2)
-#  ...
-#  PRESETS['ddpg']['HLML']['ac'] = HLML_ActorCritic
-#  PRESETS['ddpg']['HLML']['ac_kwargs'] = {'pi': myActor, 'pi': myCritic}  (we can also rethink how ac_kwargs are used)
-
-# TODO supposing we do any of the above,
-#  this presets object might be better as a class,
-#  including a method for saving args to file
-# TODO currently the big internal dict of kwargs can only contain kwargs for spinningup vpg, ddpg, etc (how to generalize)?
-
+# define default parameters for each implemented training algorithm
 PRESETS = {'vpg':
                 {'ac_kwargs': dict(hidden_sizes=[64] * 2),
                  'gamma': 0.99,

@@ -4,6 +4,8 @@ from gym.spaces import Box, Discrete
 # use for checks before running primary RL tasks
 # ------------------------------------------------------------------------------
 
+# TODO ncpu support (and maybe GPU) for different algorithms here
+
 COMPATIBILITY_CHECKS = {'ddpg':
                         {'obs_env': [Box, Discrete],
                          'act_env': [Box]},
