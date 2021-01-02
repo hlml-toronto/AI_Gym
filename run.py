@@ -7,7 +7,7 @@ from torch.distributions.categorical import Categorical
 import algos.vpg.core as core
 from presets import outdir_from_preset
 from rl_class import HLML_RL, get_IO_dim
-from custom_ActorCritic import customActorCritic
+from customActorCritic import customActorCritic
 
 
 def main(user_input, train_input):
