@@ -5,14 +5,14 @@ import matplotlib.pyplot as plt
 import os
 
 
-def benchmark(algorithm):
+def benchmark(algorithm, env):
     """ Benchmark the specified algorithm against LunardLander-v2 with one
     thread. A fully trained model should score between 100 and 140 on a single
     run of the game.
     """
-    # All algorithms are benchmarked against LunarLander-v2 with one thread
+    # All algorithms are benchmarked with one thread
     user_input = {'training_alg': algorithm,
-                  'env_str': 'LunarLander-v2',
+                  'env_str': env,
                   'ncpu': 1,
                   'run_name': 'benchmark',
                   'use_custom': False,
@@ -22,7 +22,7 @@ def benchmark(algorithm):
     train_input['epochs'] = 5000
 
     # specify output directory
-    default_out = outdir_from_preset(algorithm, False, 'LunarLander-v2') + '_' + 'benchmark'
+    default_out = outdir_from_preset(algorithm, False, env) + '_' + 'benchmark'
     user_input['exp_name'] = default_out
 
     # train the model
@@ -41,15 +41,16 @@ def benchmark(algorithm):
     ydown = df['AverageEpRet'] - df['StdEpRet']
     plt.plot(x, y, 'k--')
     plt.fill_between(x, ydown, yup, alpha=.3)
-    plt.title(user_input['training_alg'] + ':  ' + user_input['env_str'])
+    plt.title(user_input['training_alg'] + ':  ' + env)
     plt.xlabel('Wall time')
     plt.ylabel('Average Epoch Reward')
     plt.savefig(log_out + os.sep + 'benchmark.png')
 
 
 if __name__ == '__main__':
-    # This is the only line that the user should change:
+    # These are the only lines that the user should change:
     algorithm = 'vpg'
+    env = 'LunarLander-v2'
 
     # run training, evaluate trainined model
-    benchmark(algorithm)
+    benchmark(algorithm, env)
