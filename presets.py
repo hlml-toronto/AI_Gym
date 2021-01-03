@@ -1,15 +1,9 @@
-from importlib import import_module
-
 # choose if MPI multi-threading (n > 1) or not (n = 1)
 DEFAULT_NCPU = 1
 
-# each algorithm has at least one or two variants
-DEFAULT_VARIANT = 'spinningup'
-assert DEFAULT_VARIANT in ['spinningup', 'HLML']
-
 # prepare the default environment
 DEFAULT_ENV_STR = 'LunarLander-v2'
-TESTED_ENVS = ['LunarLander-v2']
+TESTED_ENVS = ['LunarLander-v2', 'MountainCarContinuous-v0', 'BipedalWalker-v3']
 
 # define default parameters for each implemented training algorithm
 PRESETS = {'vpg':
@@ -44,7 +38,7 @@ PRESETS = {'vpg':
                  'update_after': 1000,      # unique to ddpg (not in vpg)
                  'update_every': 50,        # unique to ddpg (not in vpg)
                  'act_noise': 0.1,          # unique to ddpg (not in vpg)
-                 'num_test_episodes': 10}  # unique to ddpg (not in vpg)
+                 'num_test_episodes': 10}   # unique to ddpg (not in vpg)
            }
 
 IMPLEMENTED_ALGOS = PRESETS.keys()

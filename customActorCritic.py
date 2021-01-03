@@ -16,6 +16,7 @@ TRAINING_ALG = 'vpg'
 # write default hyperparameters for your custom ActorCritic
 CUSTOM_AC_DEFAULT_KWARGS = {}
 
+
 class customActor(core.Actor):
     """
     Custom user policy model

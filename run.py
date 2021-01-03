@@ -1,12 +1,5 @@
-import gym
-import torch
-import torch.nn as nn
-from gym.spaces import Box, Discrete
-from torch.distributions.categorical import Categorical
-
-import algos.vpg.core as core
-from presets import outdir_from_preset
-from rl_class import HLML_RL, get_IO_dim
+from presets import outdir_from_preset, DEFAULT_ENV_STR
+from rl_class import HLML_RL
 from customActorCritic import customActorCritic, TRAINING_ALG, CUSTOM_AC_DEFAULT_KWARGS
 
 
@@ -49,7 +42,7 @@ if __name__ == '__main__':
     #  - ncpu:                    (int) MPI multithreading (some algos will not support)  # TODO gpu flag arg as well?
     #  - run_name:                (str) custom name for your training run
     user_input = {'training_alg': TRAINING_ALG,
-                  'use_custom': True,
+                  'use_custom': False,
                   'env_str': 'LunarLander-v2',
                   'ncpu': 1,
                   'run_name': None}
