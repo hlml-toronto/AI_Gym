@@ -6,9 +6,7 @@ import os
 
 
 def benchmark(algorithm, env):
-    """ Benchmark the specified algorithm against LunardLander-v2 with one
-    thread. A fully trained model should score between 100 and 140 on a single
-    run of the game.
+    """ Benchmark the specified algorithm against env with one thread
     """
     # All algorithms are benchmarked with one thread
     user_input = {'training_alg': algorithm,
