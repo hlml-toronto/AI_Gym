@@ -17,7 +17,11 @@ def benchmark(algorithm, env):
                   'actorCritic': None}
 
     train_input = PRESETS[algorithm]
-    train_input['epochs'] = 5000
+    # The choice of epochs was found empirically
+    if env == 'MountainCarContinuous-v0':
+        train_input['epochs'] = 100
+    elif env == 'LunarLander-v2':
+        train_input['epochs'] = 5000
 
     # specify output directory
     default_out = outdir_from_preset(algorithm, False, env) + '_' + 'benchmark'
@@ -47,8 +51,8 @@ def benchmark(algorithm, env):
 
 if __name__ == '__main__':
     # These are the only lines that the user should change:
-    algorithm = 'vpg'
-    env = 'LunarLander-v2'
+    algorithm = 'ddpg'
+    env = 'MountainCarContinuous-v0'
 
     # run training, evaluate trainined model
     benchmark(algorithm, env)
