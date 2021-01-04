@@ -57,8 +57,47 @@ PRESETS = {'vpg':
                  'num_test_episodes': 10,
                  'max_ep_len': 1000,
                  'logger_kwargs': dict(),
-                 'save_freq': 1
-                }
+                 'save_freq': 1},
+
+           'ppo':
+                {'ac_kwargs': dict(),
+                 'seed': 0,
+                 'steps_per_epoch': 4000,
+                 'epochs': 50,
+                 'gamma': 0.99,
+                 'clip_ratio': 0.2,
+                 'pi_lr': 0.0003,
+                 'vf_lr': 0.001,
+                 'train_pi_iters': 80,
+                 'train_v_iters': 80,
+                 'lam': 0.97,
+                 'max_ep_len': 1000,
+                 'target_kl': 0.01,
+                 'logger_kwargs': dict(),
+                 'save_freq': 10},
+
+           'td3':
+                {'ac_kwargs': dict(),
+                 'seed': 0,
+                 'steps_per_epoch': 4000,
+                 'epochs': 100,
+                 'replay_size': 1000000,
+                 'gamma': 0.99,
+                 'polyak': 0.995,
+                 'pi_lr': 0.001,
+                 'q_lr': 0.001,
+                 'batch_size': 100,
+                 'start_steps': 10000,
+                 'update_after': 1000,
+                 'update_every': 50,
+                 'act_noise': 0.1,
+                 'target_noise': 0.2,
+                 'noise_clip': 0.5,
+                 'policy_delay': 2,
+                 'num_test_episodes': 10,
+                 'max_ep_len': 1000,
+                 'logger_kwargs': dict(),
+                 'save_freq': 1}
            }
 
 IMPLEMENTED_ALGOS = PRESETS.keys()
@@ -66,7 +105,9 @@ IMPLEMENTED_ALGOS = PRESETS.keys()
 # provides a default ActorCritic
 DEFAULT_ACTOR_CRITIC = {"vpg": "MLPActorCritic",
                         "ddpg": "MLPActorCritic",
-                        "sac": "MLPActorCritic"}
+                        "sac": "MLPActorCritic",
+                        "ppo": "MLPActorCritic",
+                        "td3": "MLPActorCritic"}
 
 
 # how the experiment directories are written

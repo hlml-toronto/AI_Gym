@@ -18,4 +18,12 @@ COMPATIBILITY_CHECKS = {'ddpg':
                         {'obs_env': [Box, Discrete],
                          'act_env': [Box]},
 
+                        'ppo':
+                        {'obs_env': [Box, Discrete],
+                         'act_env': [Box, Discrete]},
+
+                        'td3':
+                        {'obs_env': [Box, Discrete],
+                         'act_env': [Box]},
+
                         }
