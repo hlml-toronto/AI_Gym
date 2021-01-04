@@ -13,4 +13,9 @@ COMPATIBILITY_CHECKS = {'ddpg':
                         'vpg':
                         {'obs_env': [Box, Discrete],
                          'act_env': [Box, Discrete]},
+
+                        'sac':
+                        {'obs_env': [Box, Discrete],
+                         'act_env': [Box]},
+
                         }
