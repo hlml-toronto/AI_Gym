@@ -99,6 +99,7 @@ class HLML_RL:
 
         # algo versus environment compatibility check
         #  e.g. spinningup ddpg assumes continuous action space, lunar lander is discrete though
+
         if self.training_alg in COMPATIBILITY_CHECKS.keys():
             test_env = gym.make(self.env_str)
             observation_space = test_env.observation_space
@@ -108,6 +109,9 @@ class HLML_RL:
                 assert type(action_space) in COMPATIBILITY_CHECKS[self.training_alg]['act_env']
             except AssertionError:
                 raise AssertionError("\n\n\nThe gym environment and training algorithm selected are not compatible! Please check what type of action space and state space are required by your training algorithm, or try with a different gym environment.")
+            # ncpu warnings
+            if self.ncpu > 1 and COMPATIBILITY_CHECKS[self.training_alg]['ncpu_warn']:
+                print('Warning: ncpu > 1 (set to %d) is unstable with %s' % (self.ncpu, self.training_alg))
         else:
             print("The current training algorithm does not have any listed compatible environments. Run at your own risk!")
 

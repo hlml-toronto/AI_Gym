@@ -8,22 +8,27 @@ from gym.spaces import Box, Discrete
 
 COMPATIBILITY_CHECKS = {'ddpg':
                         {'obs_env': [Box, Discrete],
-                         'act_env': [Box]},
+                         'act_env': [Box],
+                         'ncpu_warn': True},
 
                         'vpg':
                         {'obs_env': [Box, Discrete],
-                         'act_env': [Box, Discrete]},
+                         'act_env': [Box, Discrete],
+                         'ncpu_warn': False},
 
                         'sac':
                         {'obs_env': [Box, Discrete],
-                         'act_env': [Box]},
+                         'act_env': [Box],
+                         'ncpu_warn': True},
 
                         'ppo':
                         {'obs_env': [Box, Discrete],
-                         'act_env': [Box, Discrete]},
+                         'act_env': [Box, Discrete],
+                         'ncpu_warn': True},
 
                         'td3':
                         {'obs_env': [Box, Discrete],
-                         'act_env': [Box]},
+                         'act_env': [Box],
+                         'ncpu_warn': True},
 
                         }

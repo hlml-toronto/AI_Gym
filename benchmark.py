@@ -6,20 +6,49 @@ import os
 
 """
 Notes:
-- ncpu with ddpg: appears detrimental
-- ncpu with vpg: setting ncpu 5 or 6 gave ~2.5x speedup on LunarLander-v2
+- ncpu > 1 with vpg:  setting ncpu 5 or 6 gave ~2.5x speedup on LunarLander-v2
+- ncpu > 1 with ddpg: appears detrimental
+- ncpu > 1 with sac:  appears detrimental
+- ncpu > 1 with ppo:  fails with ncpu > 2 for 'MountainCarContinuous-v0', but works for 'Pendulum-v0'
+- ncpu > 1 with td3:  appears detrimental
 - ddpg epochs are much slower than vpg (for 'BipedalWalker-v3'): 60s vs 4.2s per epoch
 
 Issues:
-- 'BipedalWalker-v3' + vpg appears to hang with ncpu > 1
-- 'CarRacing-v0' + vpg fails quickly with torch error
-- 'CarRacing-v0' + ddpg fails quickly with memory error
- 
+- 'BipedalWalker-v3' + vpg           appears to hang with ncpu > 1
+- 'MountainCarContinuous-v0' + ppo   crash when ncpu > 2
+- 'CarRacing-v0' + vpg               fails quickly with torch error
+- 'CarRacing-v0' + ddpg              fails quickly with memory error
+- 'CarRacing-v0' + sac               fails quickly with memory error
+- 'CarRacing-v0' + ppo               fails quickly with torch error
+- 'CarRacing-v0' + td3               fails quickly with memory error
+
 Tested:
-- vpg + ncpu>=1 : 'LunarLander-v2', 'CartPole-v1', 'Pendulum-v0', 'Acrobot-v1'
-- vpg + npu=1 : 'BipedalWalker-v3'
-- ddpg: 'MountainCarContinuous-v0', 'BipedalWalker-v3'
+- vpg  + ncpu>=1 : 'LunarLander-v2', 'CartPole-v1', 'Pendulum-v0', 'Acrobot-v1'
+- vpg  + npu=1 :   'BipedalWalker-v3'
+- ddpg + npu=1 :   'MountainCarContinuous-v0'
+- sac  + npu=1 :   'MountainCarContinuous-v0'
+- ppo  + npu=1 :   'MountainCarContinuous-v0'
+- td3  + npu=1 :   'MountainCarContinuous-v0'
 """
+
+
+def plot_performance_timeseries(log_out, training_alg, env):
+    # read progress.txt
+    fname = log_out + os.sep + 'progress.txt'
+    progress_df = pd.read_csv(fname, delim_whitespace=True)
+    # plot
+    fig, axes = plt.subplots(nrows=1, ncols=1)
+    x = progress_df['Time']
+    y = progress_df['AverageEpRet']
+    yup = progress_df['AverageEpRet'] + progress_df['StdEpRet']
+    ydown = progress_df['AverageEpRet'] - progress_df['StdEpRet']
+    plt.plot(x, y, 'k--')
+    plt.fill_between(x, ydown, yup, alpha=.3)
+    plt.title(training_alg + ':  ' + env)
+    plt.xlabel('Wall time')
+    plt.ylabel('Average Epoch Reward')
+    plt.savefig(log_out + os.sep + 'training_performance.png')
+    return
 
 
 def benchmark(algorithm, env):
@@ -28,7 +57,7 @@ def benchmark(algorithm, env):
     # All algorithms are benchmarked with one thread
     user_input = {'training_alg': algorithm,
                   'env_str': env,
-                  'ncpu': 1,
+                  'ncpu': 2,
                   'run_name': 'benchmark',
                   'use_custom': False,
                   'actorCritic': None}
@@ -51,27 +80,14 @@ def benchmark(algorithm, env):
     bench = HLML_RL(**user_input)
     bench.train(**train_input)
 
-    # benchmark the trained model
+    # plot model performance timeseries
     log_out = os.path.join('experiments', default_out, default_out + '_s' + str(bench.seed))
-    fname = log_out + os.sep + 'progress.txt'
-    df = pd.read_csv(fname, delim_whitespace=True)
-
-    fig, axes = plt.subplots(nrows=1, ncols=1)
-    x = df['Time']
-    y = df['AverageEpRet']
-    yup = df['AverageEpRet'] + df['StdEpRet']
-    ydown = df['AverageEpRet'] - df['StdEpRet']
-    plt.plot(x, y, 'k--')
-    plt.fill_between(x, ydown, yup, alpha=.3)
-    plt.title(user_input['training_alg'] + ':  ' + env)
-    plt.xlabel('Wall time')
-    plt.ylabel('Average Epoch Reward')
-    plt.savefig(log_out + os.sep + 'benchmark.png')
+    plot_performance_timeseries(log_out, algorithm, env)
 
 
 if __name__ == '__main__':
     # These are the only lines that the user should change:
-    algorithm = 'sac'
+    algorithm = 'ppo'
     env = 'MountainCarContinuous-v0'
 
     # run training, evaluate trained model

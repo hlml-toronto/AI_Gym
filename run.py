@@ -1,6 +1,9 @@
+import os
+
+from benchmark import plot_performance_timeseries
+from customActorCritic import customActorCritic, TRAINING_ALG, CUSTOM_AC_DEFAULT_KWARGS
 from presets import outdir_from_preset, DEFAULT_ENV_STR
 from rl_class import HLML_RL
-from customActorCritic import customActorCritic, TRAINING_ALG, CUSTOM_AC_DEFAULT_KWARGS
 
 
 def main(user_input, train_input):
@@ -23,6 +26,10 @@ def main(user_input, train_input):
         training_setup.ac_help()  # print the documentation for a custom ActorCritic
     training_setup.train(**train_input)
 
+    # plot model performance timeseries
+    log_out = os.path.join('experiments', default_out, default_out + '_s' + str(training_setup.seed))
+    plot_performance_timeseries(log_out, user_input['training_alg'], user_input['env_str'])
+
     # render the trained model
     training_setup.render(save=True, show=False)
 
@@ -42,7 +49,7 @@ if __name__ == '__main__':
     #  - ncpu:                    (int) MPI multithreading (some algos will not support)  # TODO gpu flag arg as well?
     #  - run_name:                (str) custom name for your training run
     user_input = {'training_alg': TRAINING_ALG,
-                  'use_custom': False,
+                  'use_custom': True,
                   'env_str': 'LunarLander-v2',
                   'ncpu': 1,
                   'run_name': None}
@@ -52,7 +59,7 @@ if __name__ == '__main__':
 
     # change any training hyperparameters at runtime, e.g. for fine tuning your hyperparameters from defaults
     train_input.update(
-                       {'epochs': 1,
+                       {'epochs': 3,
                         'steps_per_epoch': 1000})
 
     # run training, visualize trainined model
