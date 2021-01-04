@@ -51,7 +51,7 @@ def benchmark(algorithm, env):
 
 if __name__ == '__main__':
     # These are the only lines that the user should change:
-    algorithm = 'ddpg'
+    algorithm = 'sac'
     env = 'MountainCarContinuous-v0'
 
     # run training, evaluate trainined model

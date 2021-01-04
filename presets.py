@@ -38,14 +38,35 @@ PRESETS = {'vpg':
                  'update_after': 1000,      # unique to ddpg (not in vpg)
                  'update_every': 50,        # unique to ddpg (not in vpg)
                  'act_noise': 0.1,          # unique to ddpg (not in vpg)
-                 'num_test_episodes': 10}   # unique to ddpg (not in vpg)
+                 'num_test_episodes': 10},  # unique to ddpg (not in vpg)
+
+           'sac':
+                {'ac_kwargs': dict(),
+                 'seed': 0,
+                 'steps_per_epoch': 4000,
+                 'epochs': 100,
+                 'replay_size': 1000000,
+                 'gamma': 0.99,
+                 'polyak': 0.995,
+                 'lr': 0.001,
+                 'alpha': 0.2,
+                 'batch_size': 100,
+                 'start_steps': 10000,
+                 'update_after': 1000,
+                 'update_every': 50,
+                 'num_test_episodes': 10,
+                 'max_ep_len': 1000,
+                 'logger_kwargs': dict(),
+                 'save_freq': 1
+                }
            }
 
 IMPLEMENTED_ALGOS = PRESETS.keys()
 
 # provides a default ActorCritic
 DEFAULT_ACTOR_CRITIC = {"vpg": "MLPActorCritic",
-                        "ddpg": "MLPActorCritic"}
+                        "ddpg": "MLPActorCritic",
+                        "sac": "MLPActorCritic"}
 
 
 # how the experiment directories are written
