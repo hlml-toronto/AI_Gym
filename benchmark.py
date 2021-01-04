@@ -4,6 +4,23 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
+"""
+Notes:
+- ncpu with ddpg: appears detrimental
+- ncpu with vpg: setting ncpu 5 or 6 gave ~2.5x speedup on LunarLander-v2
+- ddpg epochs are much slower than vpg (for 'BipedalWalker-v3'): 60s vs 4.2s per epoch
+
+Issues:
+- 'BipedalWalker-v3' + vpg appears to hang with ncpu > 1
+- 'CarRacing-v0' + vpg fails quickly with torch error
+- 'CarRacing-v0' + ddpg fails quickly with memory error
+ 
+Tested:
+- vpg + ncpu>=1 : 'LunarLander-v2', 'CartPole-v1', 'Pendulum-v0', 'Acrobot-v1'
+- vpg + npu=1 : 'BipedalWalker-v3'
+- ddpg: 'MountainCarContinuous-v0', 'BipedalWalker-v3'
+"""
+
 
 def benchmark(algorithm, env):
     """ Benchmark the specified algorithm against env with one thread
@@ -22,6 +39,9 @@ def benchmark(algorithm, env):
         train_input['epochs'] = 100
     elif env == 'LunarLander-v2':
         train_input['epochs'] = 5000
+    else:
+        print('Warning: untested environment specified')
+        train_input['epochs'] = 20
 
     # specify output directory
     default_out = outdir_from_preset(algorithm, False, env) + '_' + 'benchmark'
@@ -51,8 +71,8 @@ def benchmark(algorithm, env):
 
 if __name__ == '__main__':
     # These are the only lines that the user should change:
-    algorithm = 'ddpg'
+    algorithm = 'sac'
     env = 'MountainCarContinuous-v0'
 
-    # run training, evaluate trainined model
+    # run training, evaluate trained model
     benchmark(algorithm, env)
