@@ -2,7 +2,6 @@
 DEFAULT_NCPU = 1
 
 # prepare the default environment
-DEFAULT_ENV_STR = 'LunarLander-v2'
 TESTED_ENVS = ['LunarLander-v2', 'MountainCarContinuous-v0', 'BipedalWalker-v3']
 
 # define default parameters for each implemented training algorithm

@@ -2,7 +2,7 @@ import os
 
 from benchmark import plot_performance_timeseries
 from customActorCritic import customActorCritic, TRAINING_ALG, CUSTOM_AC_DEFAULT_KWARGS
-from presets import outdir_from_preset, DEFAULT_ENV_STR
+from presets import outdir_from_preset
 from rl_class import HLML_RL
 
 
@@ -40,7 +40,6 @@ if __name__ == '__main__':
     #  - 'MountainCarContinuous-v0'  (continuous action space)
     #  - 'BipedalWalker-v3'          (continuous action space)       - Hard
 
-
     # general user choices
     #  - training_alg:            (str) specified in custom_ActorCritic.py (e.g. 'vpg' or 'ddpg')
     #  - use_custom:              (Bool) choose algorithm variant: custom or not
@@ -59,8 +58,7 @@ if __name__ == '__main__':
 
     # change any training hyperparameters at runtime, e.g. for fine tuning your hyperparameters from defaults
     train_input.update(
-                       {'epochs': 3,
-                        'steps_per_epoch': 1000})
+                       {'epochs': 10})
 
     # run training, visualize trainined model
     main(user_input, train_input)
