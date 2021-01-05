@@ -4,6 +4,7 @@ import torch.nn as nn
 from gym.spaces import Box, Discrete
 from importlib import import_module
 from matplotlib import animation
+import copy
 
 import utils.test_policy as test_policy
 from presets import PRESETS, IMPLEMENTED_ALGOS, TESTED_ENVS, DEFAULT_ACTOR_CRITIC
@@ -158,7 +159,18 @@ class HLML_RL:
         preset_kwargs['logger_kwargs'] = logger_kwargs
 
         # begin training
-        method(self.env, actor_critic=self.actorCritic, **preset_kwargs)
+        if kwargs['render_freq'] is None:
+            method(self.env, actor_critic=self.actorCritic, **preset_kwargs)
+        else:
+            train_shedule = [kwargs['render_freq'] for _ in range(int(preset_kwargs['epochs'] / kwargs['render_freq']))] + [preset_kwargs['epochs'] % kwargs['render_freq']]
+            train_kwargs_copy = copy.deepcopy(preset_kwargs)
+            train_kwargs_copy.pop('render_freq')
+            for idx, i in enumerate(train_shedule):
+                train_kwargs_copy['epochs'] = i
+                method(self.env, actor_critic=self.actorCritic, **train_kwargs_copy)
+                render_kwarg = {'filename': '/gym_animation_' + str(idx + 1) + '.gif'}
+                self.render(save=True, show=False, seed=self.seed, **render_kwarg)
+
 
     def load_agent(self, seed=0):
         """Load to pick up training where left off
@@ -186,7 +198,9 @@ class HLML_RL:
             Ensure you have imagemagick installed with
             sudo apt-get install imagemagick
             """
-            def save_frames_as_gif(frames, path=save_path, filename='/gym_animation.gif'):
+            fname = kwargs.get('filename', '/gym_animation.gif')
+
+            def save_frames_as_gif(frames, path=save_path, filename=fname):
                 # Mess with this to change frame size
                 plt.figure(figsize=(frames[0].shape[1] / 72.0,
                                     frames[0].shape[0] / 72.0), dpi=72)
