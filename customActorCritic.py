@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.distributions.categorical import Categorical
+from importlib import import_module
 
 from rl_class import get_IO_dim
 
@@ -12,11 +13,14 @@ from rl_class import get_IO_dim
 # specify the name of the training algorithm for your custom ActorCritic
 TRAINING_ALG = 'vpg'
 
+# dynamically import source code (e.g. import algos.vpg.vpg as mod)
+core = import_module("algos.{}.core".format(TRAINING_ALG))
+
 # write default hyperparameters for your custom ActorCritic
 CUSTOM_AC_DEFAULT_KWARGS = {}
 
 
-class customActor(nn.Module):
+class customActor(core.Actor):
     """
     Custom user policy model
     """
