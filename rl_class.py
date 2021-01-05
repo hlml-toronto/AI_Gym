@@ -172,19 +172,6 @@ class HLML_RL:
                                  'model_itr': itr}
                 self.render(save=True, show=False, seed=self.seed, **render_kwargs)
             self.render(save=True, show=False, seed=self.seed)  # also render the final trained model
-        """if render_freq is None:
-            method(self.env, actor_critic=self.actorCritic, **preset_kwargs)
-        else:
-            train_shedule = [render_freq for _ in range(int(preset_kwargs['epochs'] / render_freq))] + [preset_kwargs['epochs'] % render_freq]
-            train_kwargs_copy = copy.deepcopy(preset_kwargs)
-            # render_freq should not be passed to train method
-            if 'render_freq' in train_kwargs_copy.keys():
-                train_kwargs_copy.pop('render_freq')
-            for idx, i in enumerate(train_shedule):
-                train_kwargs_copy['epochs'] = i
-                method(self.env, actor_critic=self.actorCritic, **train_kwargs_copy)
-                render_kwarg = {'filename': '/gym_animation_' + str(idx + 1) + '.gif'}
-                self.render(save=True, show=False, seed=self.seed, **render_kwarg)"""
 
     def load_agent(self, seed=0, model_itr=""):
         """Load to pick up training where left off
