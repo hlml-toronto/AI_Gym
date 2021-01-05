@@ -165,7 +165,9 @@ class HLML_RL:
         else:
             train_shedule = [render_freq for _ in range(int(preset_kwargs['epochs'] / render_freq))] + [preset_kwargs['epochs'] % render_freq]
             train_kwargs_copy = copy.deepcopy(preset_kwargs)
-            train_kwargs_copy.pop('render_freq')
+            # render_freq should not be passed to train method
+            if 'render_freq' in train_kwargs_copy.keys():
+                train_kwargs_copy.pop('render_freq')
             for idx, i in enumerate(train_shedule):
                 train_kwargs_copy['epochs'] = i
                 method(self.env, actor_critic=self.actorCritic, **train_kwargs_copy)
