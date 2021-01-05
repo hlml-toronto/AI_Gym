@@ -4,7 +4,7 @@ import torch.nn as nn
 from gym.spaces import Box, Discrete
 from importlib import import_module
 from matplotlib import animation
-import copy
+import glob
 
 import utils.test_policy as test_policy
 from presets import PRESETS, IMPLEMENTED_ALGOS, TESTED_ENVS, DEFAULT_ACTOR_CRITIC
@@ -159,8 +159,20 @@ class HLML_RL:
         preset_kwargs['logger_kwargs'] = logger_kwargs
 
         # begin training
-        render_freq = kwargs.get('render_freq', None)
-        if render_freq is None:
+        preset_kwargs['render_freq'] = kwargs.get('render_freq', None)
+        method(self.env, actor_critic=self.actorCritic, **preset_kwargs)
+
+        # render all checkpoints
+        if kwargs['render_freq'] is not None:
+            log_dir = logger_kwargs['output_dir'] + os.sep + 'pyt_save' + os.sep
+            fnames = glob.glob(log_dir + 'model*.pt')[1:]  # first item in list is final checkpoint, with no itr in file name
+            for checkpoint in fnames:
+                itr = re.search('model(.*).pt', checkpoint).group(1) # get epoch number from file name
+                render_kwargs = {'filename': '/gym_animation_' + str(itr) + '.gif',
+                                 'model_itr': itr}
+                self.render(save=True, show=False, seed=self.seed, **render_kwargs)
+            self.render(save=True, show=False, seed=self.seed)  # also render the final trained model
+        """if render_freq is None:
             method(self.env, actor_critic=self.actorCritic, **preset_kwargs)
         else:
             train_shedule = [render_freq for _ in range(int(preset_kwargs['epochs'] / render_freq))] + [preset_kwargs['epochs'] % render_freq]
@@ -172,22 +184,21 @@ class HLML_RL:
                 train_kwargs_copy['epochs'] = i
                 method(self.env, actor_critic=self.actorCritic, **train_kwargs_copy)
                 render_kwarg = {'filename': '/gym_animation_' + str(idx + 1) + '.gif'}
-                self.render(save=True, show=False, seed=self.seed, **render_kwarg)
+                self.render(save=True, show=False, seed=self.seed, **render_kwarg)"""
 
-
-    def load_agent(self, seed=0):
+    def load_agent(self, seed=0, model_itr=""):
         """Load to pick up training where left off
         """
         pytsave_path = os.path.join("experiments",
                                     self.exp_name,
                                     self.exp_name + "_s" + str(seed),
                                     'pyt_save')
-        self.ac = torch.load(os.path.join(pytsave_path, "model.pt"))
+        self.ac = torch.load(os.path.join(pytsave_path, "model" + model_itr + ".pt"))
         return pytsave_path
 
     def render(self, seed=0, save=False, show=True, *args, **kwargs):
         # logger_kwargs = {'output_dir' : "Jeremy", "exp_name" : whichever}
-        save_path = self.load_agent(seed)
+        save_path = self.load_agent(seed, model_itr=kwargs.get('model_itr', ""))
 
         if show:
             render = True; max_ep_len = None; num_episodes = 20; itr = 'last'
