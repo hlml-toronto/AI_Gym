@@ -306,7 +306,6 @@ def vpg(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
                     logger.store(EpRet=ep_ret, EpLen=ep_len)
                 o, ep_ret, ep_len = env.reset(), 0, 0
 
-
         # Save model
         if (epoch % save_freq == 0) or (epoch == epochs-1):
             if render_freq is None:

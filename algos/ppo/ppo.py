@@ -88,7 +88,7 @@ class PPOBuffer:
 def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         steps_per_epoch=4000, epochs=50, gamma=0.99, clip_ratio=0.2, pi_lr=3e-4,
         vf_lr=1e-3, train_pi_iters=80, train_v_iters=80, lam=0.97, max_ep_len=1000,
-        target_kl=0.01, logger_kwargs=dict(), save_freq=10):
+        target_kl=0.01, logger_kwargs=dict(), save_freq=10, render_freq=None):
     """
     Proximal Policy Optimization (by clipping),
 
@@ -189,6 +189,11 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
         save_freq (int): How often (in terms of gap between epochs) to save
             the current policy and value function.
+
+        render_freq (int or None): How often (in terms of gap between epochs)
+            to save the current policy and value function into a new file which
+            will be used after training to create rendered .gif files of the
+            agent during training.
 
     """
 
@@ -328,10 +333,14 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
                     logger.store(EpRet=ep_ret, EpLen=ep_len)
                 o, ep_ret, ep_len = env.reset(), 0, 0
 
-
         # Save model
         if (epoch % save_freq == 0) or (epoch == epochs-1):
-            logger.save_state({'env': env}, None)
+            if render_freq is None:
+                logger.save_state({'env': env}, None)
+            else:
+                logger.save_state({'env': env}, None)  # current state
+                logger.save_state({'env': env}, epoch)  # for rendering
+
 
         # Perform PPO update!
         update()
