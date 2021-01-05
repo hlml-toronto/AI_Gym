@@ -47,7 +47,7 @@ def td3(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         polyak=0.995, pi_lr=1e-3, q_lr=1e-3, batch_size=100, start_steps=10000,
         update_after=1000, update_every=50, act_noise=0.1, target_noise=0.2,
         noise_clip=0.5, policy_delay=2, num_test_episodes=10, max_ep_len=1000,
-        logger_kwargs=dict(), save_freq=1, render_freq=None):
+        logger_kwargs=dict(), save_freq=1):
     """
     Twin Delayed Deep Deterministic Policy Gradient (TD3)
 
@@ -143,11 +143,6 @@ def td3(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
         save_freq (int): How often (in terms of gap between epochs) to save
             the current policy and value function.
-
-        render_freq (int or None): How often (in terms of gap between epochs)
-            to save the current policy and value function into a new file which
-            will be used after training to create rendered .gif files of the
-            agent during training.
 
     """
 
@@ -336,11 +331,8 @@ def td3(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
             # Save model
             if (epoch % save_freq == 0) or (epoch == epochs-1):
-                if render_freq is None:
-                    logger.save_state({'env': env}, None)
-                else:
-                    logger.save_state({'env': env}, None)  # current state
-                    logger.save_state({'env': env}, epoch)  # for rendering
+                logger.save_state({'env': env}, None)  # current state
+                logger.save_state({'env': env}, epoch)  # for rendering
 
             # Test the performance of the deterministic version of the agent.
             test_agent()

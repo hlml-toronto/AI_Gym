@@ -157,11 +157,10 @@ class HLML_RL:
         preset_kwargs['logger_kwargs'] = logger_kwargs
 
         # begin training
-        preset_kwargs['render_freq'] = kwargs.get('render_freq', None)
         method(self.env, actor_critic=self.actorCritic, **preset_kwargs)
 
-        # render all checkpoints
-        if preset_kwargs['render_freq'] is not None:
+        # render all checkpoints user specifies with 'render_saves'
+        if preset_kwargs.get('render_saves', False):
             log_dir = logger_kwargs['output_dir'] + os.sep + 'pyt_save' + os.sep
             fnames = glob.glob(log_dir + 'model*.pt')[1:]  # first item in list is final checkpoint, with no itr in file name
             for checkpoint in fnames:

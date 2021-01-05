@@ -46,7 +46,7 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         steps_per_epoch=4000, epochs=100, replay_size=int(1e6), gamma=0.99,
         polyak=0.995, lr=1e-3, alpha=0.2, batch_size=100, start_steps=10000,
         update_after=1000, update_every=50, num_test_episodes=10, max_ep_len=1000,
-        logger_kwargs=dict(), save_freq=1, render_freq=None):
+        logger_kwargs=dict(), save_freq=1):
     """
     Soft Actor-Critic (SAC)
 
@@ -141,11 +141,6 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
         save_freq (int): How often (in terms of gap between epochs) to save
             the current policy and value function.
-
-        render_freq (int or None): How often (in terms of gap between epochs)
-            to save the current policy and value function into a new file which
-            will be used after training to create rendered .gif files of the
-            agent during training.
 
     """
 
@@ -335,11 +330,8 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
             # Save model
             if (epoch % save_freq == 0) or (epoch == epochs-1):
-                if render_freq is None:
-                    logger.save_state({'env': env}, None)
-                else:
-                    logger.save_state({'env': env}, None)  # current state
-                    logger.save_state({'env': env}, epoch)  # for rendering
+                logger.save_state({'env': env}, None)  # current state
+                logger.save_state({'env': env}, epoch)  # for rendering
 
 
             # Test the performance of the deterministic version of the agent.

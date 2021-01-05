@@ -62,7 +62,8 @@ if __name__ == '__main__':
     #  - render_freq:             (int) render to file every N epochs (defaults to None if not set)
     train_input.update(
                        {'epochs': 5,
-                        'render_freq': 2})
+                        'save_freq': 2,
+                        'render_saves': True})
 
     # run training, visualize trained model
     main(user_input, train_input)
