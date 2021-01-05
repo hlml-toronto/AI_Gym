@@ -159,10 +159,11 @@ class HLML_RL:
         preset_kwargs['logger_kwargs'] = logger_kwargs
 
         # begin training
-        if kwargs['render_freq'] is None:
+        render_freq = kwargs.get('render_freq', None)
+        if render_freq is None:
             method(self.env, actor_critic=self.actorCritic, **preset_kwargs)
         else:
-            train_shedule = [kwargs['render_freq'] for _ in range(int(preset_kwargs['epochs'] / kwargs['render_freq']))] + [preset_kwargs['epochs'] % kwargs['render_freq']]
+            train_shedule = [render_freq for _ in range(int(preset_kwargs['epochs'] / render_freq))] + [preset_kwargs['epochs'] % render_freq]
             train_kwargs_copy = copy.deepcopy(preset_kwargs)
             train_kwargs_copy.pop('render_freq')
             for idx, i in enumerate(train_shedule):
