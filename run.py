@@ -1,7 +1,7 @@
 import os
 
 from benchmark import plot_performance_timeseries
-from customActorCritic import customActorCritic, TRAINING_ALG, CUSTOM_AC_DEFAULT_KWARGS
+from customActorCriticAtari import customActorCritic, TRAINING_ALG, CUSTOM_AC_DEFAULT_KWARGS
 from presets import outdir_from_preset
 from rl_class import HLML_RL
 
@@ -49,16 +49,19 @@ if __name__ == '__main__':
     #  - run_name:                (str) custom name for your training run
     user_input = {'training_alg': TRAINING_ALG,
                   'use_custom': True,
-                  'env_str': 'LunarLander-v2',
+                  'env_str': 'SpaceInvaders-v0',
                   'ncpu': 1,
                   'run_name': None}
 
     # detailed user choices: specify overrides for algorithm defaults found in master dict PRESETS in presets.py
-    train_input = CUSTOM_AC_DEFAULT_KWARGS
+    train_input = {}
+    if user_input['use_custom']:
+        train_input = { 'ac_kwargs' : CUSTOM_AC_DEFAULT_KWARGS }
 
     # change any training hyperparameters at runtime, e.g. for fine tuning your hyperparameters from defaults
     train_input.update(
-                       {'epochs': 10})
+                       { 'epochs': 10 }
+                       )
 
     # run training, visualize trainined model
     main(user_input, train_input)

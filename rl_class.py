@@ -17,6 +17,10 @@ def get_IO_dim(arg):
     """ Given an environment name or a tuple of (observation space, action space),
     return obs_dim, act_dim representing the dimension of the state vector and
     the dimension of the action vector respectively.
+
+    Return
+        obs_dim (tuple) : Dimensions of the observable data
+        act_dim (tuple) : DImensions of the actions
     """
     if type(arg) == str:  # input is AI Gym environment name
         test_env = gym.make(arg)
@@ -28,13 +32,13 @@ def get_IO_dim(arg):
         raise TypeError("Did not recognize type of input to get_IO_dim()")
     # get obj_dim
     if isinstance(observation_space, Box):
-        obs_dim = observation_space.shape[0]
+        obs_dim = observation_space.shape
     else:
         assert isinstance(observation_space, Discrete)
         obs_dim = observation_space.n
     # get act_dim
     if isinstance(action_space, Box):
-        act_dim = action_space.shape[0]
+        act_dim = action_space.shape
     else:
         assert isinstance(action_space, Discrete)
         act_dim = action_space.n
@@ -138,8 +142,6 @@ class HLML_RL:
         """
         # define default parameters for each training algorithm, then perturb them based on user input
         preset_kwargs = PRESETS[self.training_alg]   # select default kwargs for the algo
-        if self.use_custom:  # do not pass default ac_kwargs if custom ActorCritic is specified
-            preset_kwargs.pop('ac_kwargs')
         preset_kwargs.update(kwargs)                 # update default algo kwargs based on user input
 
         # dynamically import source code (e.g. import algos.vpg.vpg as mod)
