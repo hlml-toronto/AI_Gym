@@ -357,6 +357,9 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         logger.log_tabular('Time', time.time()-start_time)
         logger.dump_tabular()
 
+    logger.output_file.close()
+
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
