@@ -6,6 +6,7 @@ import skimage.transform as transform
 import numpy as np
 
 #import algos.vpg.core as core #TODO needs to change
+import algos.vpg.core as core
 from rl_class import get_IO_dim
 
 # ------------------------------------------------------------------------------
@@ -24,8 +25,18 @@ CUSTOM_AC_DEFAULT_KWARGS = { "resize_dim" : (84,84,1)
                             , "hidden_padding" : [0,0,0]
                             }
 
+def transform_obs(obs, resize_dim):
+    # Need to transform data to make the network less large.
+    # Here, we've simply made the image greyscale and then downscaled it
+    grey_obs = rgb2gray(obs)
+    # resizes it
+    new_obs = torch.from_numpy( transform.resize(grey_obs, resize_dim))
+    # needs to be in [batch_size, number_channels, heigh, width]
+    new_obs = (new_obs.transpose(0,2))[None,:] # batch_size = None
+    return new_obs
 
-class customActor(nn.Module): # Was core.Actor
+
+class customActor(core.Actor): # Was core.Actor
     """
     Custom user policy model
     """
@@ -33,6 +44,7 @@ class customActor(nn.Module): # Was core.Actor
                     , hidden_stride, hidden_padding):
         super().__init__()
         # TODO make have kwargs pass filtering and such
+        self.resize_dim = resize_dim
         sizes = [resize_dim[2]] + list(hidden_sizes)
         conv_layers = []
         new_img_size = resize_dim[0] # size of image after convolution
@@ -73,6 +85,13 @@ class customActor(nn.Module): # Was core.Actor
     def _log_prob_from_distribution(self, pi, act):
         return pi.log_prob(act)
 
+    def forward(self, obs, act=None):
+        resize_obs = transform_obs(obs, self.resize_dim)
+        return super().forward(resize_obs,act)  # Critical to ensure v has right shape.
+
+class Flatten(nn.Module):
+    def forward(self, x):
+        return x.view(x.size()[0], -1)
 
 # TODO determine if these are VPG specific; move if so
 class customCritic(nn.Module):
@@ -82,6 +101,7 @@ class customCritic(nn.Module):
     def __init__(self, resize_dim, hidden_sizes, hidden_kernel, hidden_stride
                                 , hidden_padding):
         super().__init__()
+        self.resize_dim = resize_dim
         sizes = [resize_dim[2]] + list(hidden_sizes)
         layers = []
         new_img_size = resize_dim[0] # size of image after convolution
@@ -108,12 +128,14 @@ class customCritic(nn.Module):
         # (probably not necessary here)
         layers += [ nn.Dropout() ]
 
-        # fully connected layer to activation layer, which is 1 number
+        # fully connected layer to value layer, which is 1 number
+        layers += [ Flatten() ]
         layers += [ nn.Linear( int(new_img_size * new_img_size * sizes[-1]), 1) ]
         self.v_net = nn.Sequential(*layers)
 
     def forward(self, obs):
-        return torch.squeeze(self.v_net(obs), -1)  # Critical to ensure v has right shape.
+        resize_obs = transform_obs(obs, self.resize_dim)
+        return torch.squeeze(self.v_net(resize_obs), -1)
 
 
 class customActorCritic(nn.Module):
@@ -135,18 +157,8 @@ class customActorCritic(nn.Module):
         self.v = customCritic(resize_dim, hidden_sizes, hidden_kernel
                                         , hidden_stride, hidden_padding )
 
-    def transform_obs(self, obs):
-        # Need to transform data to make the network less large.
-        # Here, we've simply made the image greyscale and then downscaled it
-        grey_obs = rgb2gray(obs)
-        # resizes it
-        new_obs = torch.from_numpy( transform.resize(grey_obs, self.resize_dim))
-        # needs to be in [batch_size, number_channels, heigh, width]
-        new_obs = (new_obs.transpose(0,2))[None,:] # batch_size = None
-        return new_obs
-
     def step(self, obs):
-        resize_obs = self.transform_obs( obs )
+        resize_obs = transform_obs( obs, self.resize_dim )
         with torch.no_grad():
             pi = self.pi._distribution(resize_obs)
             a = pi.sample()

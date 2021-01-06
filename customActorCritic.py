@@ -54,7 +54,7 @@ class customCritic(nn.Module):
             layers += [nn.Linear(sizes[j], sizes[j+1]), act()]
         self.v_net = nn.Sequential(*layers)
 
-    def forward(self, obs):
+    def forward(self, obs, act=None):
         return torch.squeeze(self.v_net(obs), -1)  # Critical to ensure v has right shape.
 
 
