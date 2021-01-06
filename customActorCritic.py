@@ -17,7 +17,7 @@ TRAINING_ALG = 'vpg'
 core = import_module("algos.{}.core".format(TRAINING_ALG))
 
 # write default hyperparameters for your custom ActorCritic
-CUSTOM_AC_DEFAULT_KWARGS = {}
+CUSTOM_AC_DEFAULT_KWARGS = {'ac_kwargs' : {'hidden_sizes' : (6,6,6) } } }
 
 
 class customActor(core.Actor):
@@ -57,7 +57,7 @@ class customCritic(nn.Module):
             layers += [nn.Linear(sizes[j], sizes[j+1]), act()]
         self.v_net = nn.Sequential(*layers)
 
-    def forward(self, obs):
+    def forward(self, obs, act=None):
         return torch.squeeze(self.v_net(obs), -1)  # Critical to ensure v has right shape.
 
 
@@ -68,7 +68,8 @@ class customActorCritic(nn.Module):
     def __init__(self, obs_env, act_env, hidden_sizes=(64, 64),
                  activation=nn.Tanh):
         super().__init__()
-        obs_dim, act_dim = get_IO_dim((obs_env, act_env))
+        obs_dim_tuple, act_dim_tuple = get_IO_dim((obs_env, act_env))
+        obs_dim = obs_dim_tuple[0]; act_dim = act_dim_tuple[0]
         # policy builder depends on action space
         self.pi = customActor(obs_dim, act_dim, hidden_sizes, activation)
 

@@ -56,13 +56,15 @@ if __name__ == '__main__':
     # detailed user choices: specify overrides for algorithm defaults found in master dict PRESETS in presets.py
     train_input = {}
     if user_input['use_custom']:
-        train_input = {'ac_kwargs': CUSTOM_AC_DEFAULT_KWARGS}
+        train_input = { 'ac_kwargs' : CUSTOM_AC_DEFAULT_KWARGS }
 
     # change any training hyperparameters at runtime, e.g. for fine tuning your hyperparameters from defaults
     #  - render_freq:             (int) render to file every N epochs (defaults to None if not set)
     train_input.update(
                        {'epochs': 5,
-                        'render_freq': 2})
+                        'render_freq': 2
+                        }
+                        )
 
     # run training, visualize trained model
     main(user_input, train_input)
