@@ -17,7 +17,7 @@ TRAINING_ALG = 'vpg'
 core = import_module("algos.{}.core".format(TRAINING_ALG))
 
 # write default hyperparameters for your custom ActorCritic
-CUSTOM_AC_DEFAULT_KWARGS = {'ac_kwargs' : {'hidden_sizes' : (6,6,6) } } }
+CUSTOM_AC_DEFAULT_KWARGS = {}  # TODO bug? {'hidden_sizes': (6,6,6)}
 
 
 class customActor(core.Actor):

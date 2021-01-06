@@ -28,13 +28,13 @@ def get_IO_dim(arg):
         raise TypeError("Did not recognize type of input to get_IO_dim()")
     # get obj_dim
     if isinstance(observation_space, Box):
-        obs_dim = observation_space.shape[0]
+        obs_dim = observation_space.shape   #TODO [0] bug?
     else:
         assert isinstance(observation_space, Discrete)
         obs_dim = observation_space.n
     # get act_dim
     if isinstance(action_space, Box):
-        act_dim = action_space.shape[0]
+        act_dim = action_space.shape        #TODO [0] bug?
     else:
         assert isinstance(action_space, Discrete)
         act_dim = action_space.n

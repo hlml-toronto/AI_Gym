@@ -72,13 +72,14 @@ if __name__ == '__main__':
     #  - restart_tuple:           (tuple) if not None, then restart training using last saved epoch state
     #                               assumes a two-tuple of the form (exp_name, exp_name_s%d)
     #  - run_name:                (str) if not None, append custom name for your training run (ignored if restarting)
+    # TODO LunarLander-v2, Pendulum-v0 fails
     user_input = {'training_alg': TRAINING_ALG,
                   'use_custom': True,
                   'env_str': 'LunarLander-v2',
                   'ncpu': 1,
-                  'seed': 8,
+                  'seed': 6,
                   'run_name': None,
-                  'restart_tuple': ('vpg_HLML_LunarLander-v2', 'vpg_HLML_LunarLander-v2_s8')}
+                  'restart_tuple': None}
 
     # detailed user choices: specify overrides for algorithm defaults found in master dict PRESETS in presets.py
     train_input = {}
