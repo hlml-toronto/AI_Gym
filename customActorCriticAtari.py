@@ -3,6 +3,7 @@ import torch.nn as nn
 from torch.distributions.categorical import Categorical
 from skimage.color import rgb2gray
 import skimage.transform as transform
+import numpy as np
 
 #import algos.vpg.core as core #TODO needs to change
 from rl_class import get_IO_dim
@@ -33,22 +34,19 @@ class customActor(nn.Module): # Was core.Actor
         super().__init__()
         # TODO make have kwargs pass filtering and such
         sizes = [resize_dim[2]] + list(hidden_sizes)
-        layers = []
+        conv_layers = []
         new_img_size = resize_dim[0] # size of image after convolution
         for j in range(len(sizes)-1):
             # convolutional layer
-            layers += [ nn.Conv2d(sizes[j], sizes[j+1]
-                        , kernel_size = hidden_kernel[j]
-                        , stride = hidden_stride[j]
-                        , padding = hidden_padding[j])]
-            #layers += [ nn.BatchNorm2d(sizes[j+1])]
-            layers += [ nn.ReLU(inplace=True) ]
-            #layers += [ nn.MaxPool2d(kernel_size=2, stride=2) ]
+            conv_layers += [ nn.Conv2d(sizes[j], sizes[j+1]
+                                            , kernel_size = hidden_kernel[j]
+                                            , stride = hidden_stride[j]
+                                            , padding = hidden_padding[j])]
+            conv_layers += [ nn.ReLU(inplace=True) ]
 
             # check that the new image size is an integer
             new_img_size = 1 + ( new_img_size - hidden_kernel[j]
                             - 2 * hidden_padding[j] ) / hidden_stride[j]
-            print(new_img_size)
             try:
                 assert new_img_size.is_integer()
             except AssertionError:
@@ -57,15 +55,20 @@ class customActor(nn.Module): # Was core.Actor
 
         # dropout layer (randomly sets certain input to 0) to avoid overfitting
         # (probably not necessary here)
-        layers += [ nn.Dropout() ]
+        conv_layers += [ nn.Dropout() ]
+        self.convolve_net = nn.Sequential( *conv_layers )
 
         # fully connected layer to activation layer
-        layers += [ nn.Linear( int(new_img_size * new_img_size * sizes[-1]), act_dim) ]
-        self.logits_net = nn.Sequential(*layers)
+        linear_layer = []
+        linear_layer +=\
+            [ nn.Linear( int( new_img_size*new_img_size*sizes[-1] ), act_dim) ]
+        self.logits_net = nn.Sequential( *linear_layer )
 
     def _distribution(self, obs):
-        logits = self.logits_net(obs)
-        return Categorical(logits=logits)
+        conv_obs = self.convolve_net( obs )
+        linear_obs = conv_obs.reshape( conv_obs.size(0), -1 )
+        logits = self.logits_net( linear_obs )
+        return Categorical( logits=logits )
 
     def _log_prob_from_distribution(self, pi, act):
         return pi.log_prob(act)
@@ -136,7 +139,11 @@ class customActorCritic(nn.Module):
         # Need to transform data to make the network less large.
         # Here, we've simply made the image greyscale and then downscaled it
         grey_obs = rgb2gray(obs)
-        return transform.resize(grey_obs, self.resize_dim)
+        # resizes it
+        new_obs = torch.from_numpy( transform.resize(grey_obs, self.resize_dim))
+        # needs to be in [batch_size, number_channels, heigh, width]
+        new_obs = (new_obs.transpose(0,2))[None,:] # batch_size = None
+        return new_obs
 
     def step(self, obs):
         resize_obs = self.transform_obs( obs )
