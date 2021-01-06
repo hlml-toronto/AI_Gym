@@ -1,4 +1,4 @@
-import gym, torch, os, re
+import gym, torch, os, re, shutil
 import matplotlib.pyplot as plt
 import torch.nn as nn
 from gym.spaces import Box, Discrete
@@ -17,10 +17,6 @@ def get_IO_dim(arg):
     """ Given an environment name or a tuple of (observation space, action space),
     return obs_dim, act_dim representing the dimension of the state vector and
     the dimension of the action vector respectively.
-
-    Return
-        obs_dim (tuple) : Dimensions of the observable data
-        act_dim (tuple) : DImensions of the actions
     """
     if type(arg) == str:  # input is AI Gym environment name
         test_env = gym.make(arg)
@@ -32,13 +28,13 @@ def get_IO_dim(arg):
         raise TypeError("Did not recognize type of input to get_IO_dim()")
     # get obj_dim
     if isinstance(observation_space, Box):
-        obs_dim = observation_space.shape
+        obs_dim = observation_space.shape[0]
     else:
         assert isinstance(observation_space, Discrete)
         obs_dim = observation_space.n
     # get act_dim
     if isinstance(action_space, Box):
-        act_dim = action_space.shape
+        act_dim = action_space.shape[0]
     else:
         assert isinstance(action_space, Discrete)
         act_dim = action_space.n
@@ -70,6 +66,8 @@ class HLML_RL:
         keword arguments can be passed through ac_kwargs keword in **kwargs.
     env : str
         The OpenAI Gym environment name to instantiate and train the RL agent on
+    restart_tuple : two-tuple; None
+        The exp_name and exp_name_s%d of the original run which is being restarted
 
     Methods
     -------
@@ -96,6 +94,7 @@ class HLML_RL:
         self.ncpu = kwargs['ncpu']
         self.exp_name = kwargs['exp_name']
         self.seed = kwargs.get('seed', 0)
+        self.restart_tuple = kwargs.get('restart_tuple', None)
 
         # check algorithm is implemented and environment has been tested
         assert self.training_alg in IMPLEMENTED_ALGOS
@@ -104,7 +103,6 @@ class HLML_RL:
 
         # algo versus environment compatibility check
         #  e.g. spinningup ddpg assumes continuous action space, lunar lander is discrete though
-
         if self.training_alg in COMPATIBILITY_CHECKS.keys():
             test_env = gym.make(self.env_str)
             observation_space = test_env.observation_space
@@ -177,19 +175,98 @@ class HLML_RL:
                 self.render(save=True, show=False, seed=self.seed, **render_kwargs)
             self.render(save=True, show=False, seed=self.seed)  # also render the final trained model
 
-    def load_agent(self, seed=0, model_itr=""):
+    def restart_train(self, **kwargs):
+        """
+        Restarts training based on the the original run specified by self.restart_tuple
+        """
+        # extract original run info
+        assert self.restart_tuple is not None
+        orig_exp_name = self.restart_tuple[0]
+        orig_exp_name_with_seed = self.restart_tuple[1]
+        orig_exp_seed = orig_exp_name_with_seed.split('s')[-1]
+        orig_exp_pytdir = 'experiments' + os.sep + orig_exp_name + os.sep + orig_exp_name_with_seed + os.sep + 'pyt_save'
+        orig_exp_models = sorted([a for a in os.listdir(orig_exp_pytdir) if a[-3:] == '.pt'])
+        orig_exp_lastmodel = orig_exp_models[-1]                          # last file will be the one with last epoch
+        orig_exp_epochs = int(orig_exp_lastmodel[:-3].split('l')[1]) + 1  # e.g. "models99.pt" will give 100
+
+        # load final model from original training
+        # Note: this sets self.actorCritic, which is passed to method() in train()
+        self.load_agent(seed=orig_exp_seed,
+                        model_itr="%d" % (orig_exp_epochs - 1),
+                        exp_name=orig_exp_name)
+
+        # call train (will output to the working directory with 'restart' suffix)
+        self.train(**kwargs)
+
+        # rename and move files to original directory, modifying the filenames  # TODO
+        # - model(%d).pt -> model(%d + epochs).pt
+        # - gym_animation_(%d).pt -> gym_animation_(%d + epochs).pt
+        # outside of pyt_save:
+        # - vars(%d).pt -> vars(%d + epochs).pt
+        # - 'progress.txt' -> 'progress_restart.txt'
+        # - 'config.json' -> 'config_restart.json'
+        working_dir = 'experiments' + os.sep + self.exp_name + os.sep + self.exp_name + '_s%d' % self.seed
+        dest = 'experiments' + os.sep + orig_exp_name + os.sep + orig_exp_name_with_seed
+        working_dir_pyt = working_dir + os.sep + 'pyt_save'
+        dest_pyt = dest + os.sep + 'pyt_save'
+
+        def batch_rename_and_move(front, ext, parent_dir, dest_dir):
+            # TODO care off by 1 errors
+            # acts like `ls front*ext` in command line
+            numbered_files = sorted(glob.glob(parent_dir + os.sep + '%s*%s' % (front, ext)))[::-1]
+            for fpath in numbered_files:
+                print('numbered file fpath', fpath)
+                itr = re.search('%s(.*)%s' % (front, ext), fpath).group(1)  # get epoch number from file name
+                if len(itr) > 0:
+                    new_epoch_num = orig_exp_epochs + int(itr)
+                    new_fpath = re.sub('%s(.*)%s' % (front, ext),
+                                       front + str(new_epoch_num) + ext, fpath)
+                    os.rename(fpath, new_fpath)
+                    print('renaming \n%s to \n%s' % (fpath, new_fpath))
+                    fpath = new_fpath
+                # move file to new directory (and overwrite)
+                shutil.move(fpath, dest_dir + os.sep + os.path.basename(fpath))
+            return
+
+        batch_rename_and_move('model',          '.pt',  working_dir_pyt, dest_pyt)
+        batch_rename_and_move('gym_animation_', '.gif', working_dir_pyt, dest_pyt)
+        batch_rename_and_move('vars',           '.pkl', working_dir,     dest)
+
+        # rename and move misc files
+        # progress file
+        os.rename(working_dir + os.sep + 'progress.txt',
+                  working_dir + os.sep + 'progress_restart.txt')
+        shutil.move(working_dir + os.sep + 'progress_restart.txt',
+                    dest + os.sep + 'progress_restart.txt')
+        # config file
+        os.rename(working_dir + os.sep + 'config.json',
+                  working_dir + os.sep + 'config_restart.json')
+        shutil.move(working_dir + os.sep + 'config_restart.json',
+                    dest + os.sep + 'config_restart.json')
+
+        # delete the working directory (the restart directory)
+        shutil.rmtree(os.path.join('experiments', self.exp_name))
+
+        return
+
+    def load_agent(self, seed=0, model_itr="", exp_name=None):
         """Load to pick up training where left off
         """
+        if exp_name is None:
+            exp_name = self.exp_name
         pytsave_path = os.path.join("experiments",
-                                    self.exp_name,
-                                    self.exp_name + "_s" + str(seed),
+                                    exp_name,
+                                    exp_name + "_s" + str(seed),
                                     'pyt_save')
-        self.ac = torch.load(os.path.join(pytsave_path, "model" + model_itr + ".pt"))
+        self.actorCritic = torch.load(os.path.join(pytsave_path, "model" + model_itr + ".pt"))
         return pytsave_path
 
-    def render(self, seed=0, save=False, show=True, *args, **kwargs):
+    def render(self, seed=0, save=False, show=True, pytsave_path=None, *args, **kwargs):
         # logger_kwargs = {'output_dir' : "Jeremy", "exp_name" : whichever}
-        save_path = self.load_agent(seed, model_itr=kwargs.get('model_itr', ""))
+        if pytsave_path is None:
+            save_path = self.load_agent(seed, model_itr=kwargs.get('model_itr', ""))
+        else:
+            save_path = pytsave_path
 
         if show:
             render = True; max_ep_len = None; num_episodes = 20; itr = 'last'
@@ -225,7 +302,7 @@ class HLML_RL:
             for t in range(1000):
                 # Render to frames buffer
                 frames.append(env.render(mode="rgb_array"))
-                action = self.ac.act(torch.as_tensor(obs, dtype=torch.float32))
+                action = self.actorCritic.act(torch.as_tensor(obs, dtype=torch.float32))
                 obs, res, done, _ = env.step(action)
                 if done:
                     break

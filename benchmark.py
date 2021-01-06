@@ -32,9 +32,10 @@ Tested:
 """
 
 
-def plot_performance_timeseries(log_out, training_alg, env):
+def plot_performance_timeseries(log_out, training_alg, env,
+                                progress_file='progress.txt', out='training_performance.png'):
     # read progress.txt
-    fname = log_out + os.sep + 'progress.txt'
+    fname = log_out + os.sep + progress_file
     progress_df = pd.read_csv(fname, delim_whitespace=True)
     # plot
     fig, axes = plt.subplots(nrows=1, ncols=1)
@@ -47,7 +48,7 @@ def plot_performance_timeseries(log_out, training_alg, env):
     plt.title(training_alg + ':  ' + env)
     plt.xlabel('Wall time')
     plt.ylabel('Average Epoch Reward')
-    plt.savefig(log_out + os.sep + 'training_performance.png')
+    plt.savefig(log_out + os.sep + out)
     return
 
 
