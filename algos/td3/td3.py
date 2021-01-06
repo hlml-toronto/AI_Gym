@@ -7,7 +7,7 @@ import gym
 import time
 import algos.td3.core as core
 from utils.logx import EpochLogger
-
+import inspect
 
 class ReplayBuffer:
     """
@@ -165,7 +165,10 @@ def td3(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     act_limit = env.action_space.high[0]
 
     # Create actor-critic module and target networks
-    ac = actor_critic(env.observation_space, env.action_space, **ac_kwargs)
+    if inspect.isclass( actor_critic ):
+        ac = actor_critic(env.observation_space, env.action_space, **ac_kwargs)
+    else:
+        ac = actor_critic
     ac_targ = deepcopy(ac)
 
     # Freeze target networks with respect to optimizers (only update via polyak averaging)

@@ -7,6 +7,7 @@ from algos.vpg import core
 from utils.mpi_pytorch import setup_pytorch_for_mpi, sync_params, mpi_avg_grads
 from utils.logx import EpochLogger
 from utils.mpi_tools import mpi_fork, proc_id, mpi_statistics_scalar, num_procs
+import inspect
 
 
 class VPGBuffer:
@@ -104,7 +105,7 @@ def vpg(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
             and return:
 
             ===========  ================  ======================================
-            Symbol       Shape             Description
+            Symbol       Shape             Descriptioninstance
             ===========  ================  ======================================
             ``a``        (batch, act_dim)  | Numpy array of actions for each
                                            | observation.
@@ -198,7 +199,10 @@ def vpg(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     obs_dim = env.observation_space.shape
     act_dim = env.action_space.shape
     # Create actor-critic module
-    ac = actor_critic(env.observation_space, env.action_space, **ac_kwargs)
+    if inspect.isclass( actor_critic ):
+        ac = actor_critic(env.observation_space, env.action_space, **ac_kwargs)
+    else:
+        ac = actor_critic
 
     # Sync params across processes
     sync_params(ac)
