@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 from torch.distributions.categorical import Categorical
 
-import algos.vpg.core as core
 from rl_class import get_IO_dim
 
 # ------------------------------------------------------------------------------
@@ -17,7 +16,7 @@ TRAINING_ALG = 'vpg'
 CUSTOM_AC_DEFAULT_KWARGS = {}
 
 
-class customActor(core.Actor):
+class customActor(nn.Module):
     """
     Custom user policy model
     """

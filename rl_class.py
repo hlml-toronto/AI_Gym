@@ -138,8 +138,6 @@ class HLML_RL:
         """
         # define default parameters for each training algorithm, then perturb them based on user input
         preset_kwargs = PRESETS[self.training_alg]   # select default kwargs for the algo
-        if self.use_custom:  # do not pass default ac_kwargs if custom ActorCritic is specified
-            preset_kwargs.pop('ac_kwargs')
         preset_kwargs.update(kwargs)                 # update default algo kwargs based on user input
 
         # dynamically import source code (e.g. import algos.vpg.vpg as mod)
@@ -163,7 +161,7 @@ class HLML_RL:
         method(self.env, actor_critic=self.actorCritic, **preset_kwargs)
 
         # render all checkpoints
-        if kwargs['render_freq'] is not None:
+        if preset_kwargs['render_freq'] is not None:
             log_dir = logger_kwargs['output_dir'] + os.sep + 'pyt_save' + os.sep
             fnames = glob.glob(log_dir + 'model*.pt')[1:]  # first item in list is final checkpoint, with no itr in file name
             for checkpoint in fnames:
