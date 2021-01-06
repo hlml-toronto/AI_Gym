@@ -143,6 +143,9 @@ class HLML_RL:
         # define default parameters for each training algorithm, then perturb them based on user input
         preset_kwargs = PRESETS[self.training_alg]   # select default kwargs for the algo
         preset_kwargs.update(kwargs)                 # update default algo kwargs based on user input
+        render_saves = preset_kwargs.get('render_saves', False)
+        if 'render_saves' in preset_kwargs.keys():
+            preset_kwargs.pop('render_saves')
 
         # dynamically import source code (e.g. import algos.vpg.vpg as mod)
         mod = import_module("algos.{}.{}".format(self.training_alg, self.training_alg))
@@ -161,11 +164,10 @@ class HLML_RL:
         preset_kwargs['logger_kwargs'] = logger_kwargs
 
         # begin training
-        preset_kwargs['render_freq'] = kwargs.get('render_freq', None)
         method(self.env, actor_critic=self.actorCritic, **preset_kwargs)
 
-        # render all checkpoints
-        if preset_kwargs['render_freq'] is not None:
+        # render all checkpoints user specifies with 'render_saves'
+        if render_saves:
             log_dir = logger_kwargs['output_dir'] + os.sep + 'pyt_save' + os.sep
             fnames = glob.glob(log_dir + 'model*.pt')[1:]  # first item in list is final checkpoint, with no itr in file name
             for checkpoint in fnames:
