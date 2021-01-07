@@ -15,8 +15,8 @@ from compatibility_checks import COMPATIBILITY_CHECKS
 
 def get_IO_dim(arg):
     """ Given an environment name or a tuple of (observation space, action space),
-    return obs_dim, act_dim representing the dimension of the state vector and
-    the dimension of the action vector respectively.
+    return obs_dim, act_dim as tuples representing the dimension of the state
+    vector and the dimension of the action vector respectively.
     """
     if type(arg) == str:  # input is AI Gym environment name
         test_env = gym.make(arg)
@@ -31,13 +31,13 @@ def get_IO_dim(arg):
         obs_dim = observation_space.shape   #TODO [0] bug?
     else:
         assert isinstance(observation_space, Discrete)
-        obs_dim = observation_space.n
+        obs_dim = (observation_space.n,)
     # get act_dim
     if isinstance(action_space, Box):
         act_dim = action_space.shape        #TODO [0] bug?
     else:
         assert isinstance(action_space, Discrete)
-        act_dim = action_space.n
+        act_dim = (action_space.n,)
 
     return obs_dim, act_dim
 
@@ -172,8 +172,10 @@ class HLML_RL:
                 itr = re.search('model(.*).pt', checkpoint).group(1) # get epoch number from file name
                 render_kwargs = {'filename': '/gym_animation_' + str(itr) + '.gif',
                                  'model_itr': itr}
-                self.render(save=True, show=False, seed=self.seed, **render_kwargs)
-            self.render(save=True, show=False, seed=self.seed)  # also render the final trained model
+                self.render_gif(save=True, show=False, seed=self.seed, **render_kwargs)
+            self.render_gif(save=True, show=False, seed=self.seed)  # also render the final trained model
+
+        self.render_video(self.seed)
 
     def restart_train(self, **kwargs):
         """
@@ -261,8 +263,26 @@ class HLML_RL:
         self.actorCritic = torch.load(os.path.join(pytsave_path, "model" + model_itr + ".pt"))
         return pytsave_path
 
-    def render(self, seed=0, save=False, show=True, pytsave_path=None, *args, **kwargs):
-        # logger_kwargs = {'output_dir' : "Jeremy", "exp_name" : whichever}
+    def render_video(self, seed=0, model_itr="", exp_name=None):
+        self.load_agent(seed, model_itr, exp_name)
+        # Make gym env
+        env = gym.make(self.env_str)
+        env = gym.wrappers.Monitor(env, './video/', force = True)
+
+        # Run the env
+        obs = env.reset(); frames = []
+        for t in range(1000):
+            env.render()
+            action = self.actorCritic.act(torch.as_tensor(obs, dtype=torch.float32))
+            obs, res, done, _ = env.step(action)
+            if done:
+                break
+        env.close()
+
+        return 0
+
+    def render_gif(self, seed=0, save=False, show=True, pytsave_path=None, *args, **kwargs):
+
         if pytsave_path is None:
             save_path = self.load_agent(seed, model_itr=kwargs.get('model_itr', ""))
         else:

@@ -52,7 +52,7 @@ def main(user_input, train_input):
                                 progress_file=progress, out=timeseries)
 
     # render the trained model
-    training_setup.render(save=True, show=False, seed=training_setup.seed,
+    training_setup.render_gif(save=True, show=False, seed=training_setup.seed,
                           pytsave_path=out_dir + os.sep + 'pyt_save')
 
 
@@ -88,8 +88,8 @@ if __name__ == '__main__':
 
     # change any training hyperparameters at runtime, e.g. for fine tuning your hyperparameters from defaults
     #  - save_freq:             (int) save model to file every N epochs (defaults to None if not set)
-    train_input.update({'epochs': 3,
-                        'save_freq': 1,
+    train_input.update({'epochs': 10,
+                        'save_freq': 5,
                         'render_saves': True})
 
     # run training, visualize trained model

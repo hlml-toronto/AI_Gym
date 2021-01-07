@@ -35,6 +35,11 @@ def transform_obs(obs, resize_dim):
     new_obs = (new_obs.transpose(0,2))[None,:] # batch_size = None
     return new_obs
 
+class Flatten(nn.Module):
+    # Takes an output from a Conv2D layer and flattens it
+    def forward(self, x):
+        return x.view(x.size()[0], -1)
+
 
 class customActor(core.Actor): # Was core.Actor
     """
@@ -46,15 +51,15 @@ class customActor(core.Actor): # Was core.Actor
         # TODO make have kwargs pass filtering and such
         self.resize_dim = resize_dim
         sizes = [resize_dim[2]] + list(hidden_sizes)
-        conv_layers = []
+        layers = []
         new_img_size = resize_dim[0] # size of image after convolution
         for j in range(len(sizes)-1):
             # convolutional layer
-            conv_layers += [ nn.Conv2d(sizes[j], sizes[j+1]
+            layers += [ nn.Conv2d(sizes[j], sizes[j+1]
                                             , kernel_size = hidden_kernel[j]
                                             , stride = hidden_stride[j]
                                             , padding = hidden_padding[j])]
-            conv_layers += [ nn.ReLU(inplace=True) ]
+            layers += [ nn.ReLU(inplace=True) ]
 
             # check that the new image size is an integer
             new_img_size = 1 + ( new_img_size - hidden_kernel[j]
@@ -67,19 +72,20 @@ class customActor(core.Actor): # Was core.Actor
 
         # dropout layer (randomly sets certain input to 0) to avoid overfitting
         # (probably not necessary here)
-        conv_layers += [ nn.Dropout() ]
-        self.convolve_net = nn.Sequential( *conv_layers )
+        layers += [ nn.Dropout() ]
+
+
+        layers += [ Flatten() ]
 
         # fully connected layer to activation layer
-        linear_layer = []
-        linear_layer +=\
+        layers +=\
             [ nn.Linear( int( new_img_size*new_img_size*sizes[-1] ), act_dim) ]
-        self.logits_net = nn.Sequential( *linear_layer )
+        self.logits_net = nn.Sequential( *layers )
 
     def _distribution(self, obs):
-        conv_obs = self.convolve_net( obs )
-        linear_obs = conv_obs.reshape( conv_obs.size(0), -1 )
-        logits = self.logits_net( linear_obs )
+        #conv_obs = self.convolve_net( obs )
+        #linear_obs = conv_obs.reshape( conv_obs.size(0), -1 )
+        logits = self.logits_net( obs )
         return Categorical( logits=logits )
 
     def _log_prob_from_distribution(self, pi, act):
@@ -88,10 +94,6 @@ class customActor(core.Actor): # Was core.Actor
     def forward(self, obs, act=None):
         resize_obs = transform_obs(obs, self.resize_dim)
         return super().forward(resize_obs,act)  # Critical to ensure v has right shape.
-
-class Flatten(nn.Module):
-    def forward(self, x):
-        return x.view(x.size()[0], -1)
 
 # TODO determine if these are VPG specific; move if so
 class customCritic(nn.Module):
@@ -147,6 +149,7 @@ class customActorCritic(nn.Module):
                     , hidden_stride=[1,1,1], hidden_padding=[0,0,0]):
         super().__init__()
         obs_dim, act_dim = get_IO_dim((obs_env, act_env))
+        act_dim = act_dim[0] # transform tuple into integer
         # policy builder depends on action space
         self.resize_dim = resize_dim
 
