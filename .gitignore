@@ -4,3 +4,4 @@ __pycache__/
 notebooks/utils
 algos/*/__pycache__
 experiments/
+video/
