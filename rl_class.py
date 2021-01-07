@@ -170,12 +170,11 @@ class HLML_RL:
             fnames = glob.glob(log_dir + 'model*.pt')[1:]  # first item in list is final checkpoint, with no itr in file name
             for checkpoint in fnames:
                 itr = re.search('model(.*).pt', checkpoint).group(1) # get epoch number from file name
-                render_kwargs = {'filename': '/gym_animation_' + str(itr) + '.gif',
+                render_kwargs = {'filename': '/gym_animation_' + str(itr) + '.mp4',
                                  'model_itr': itr}
-                self.render_gif(save=True, show=False, seed=self.seed, **render_kwargs)
-            self.render_gif(save=True, show=False, seed=self.seed)  # also render the final trained model
+                self.render(save=True, show=False, seed=self.seed, **render_kwargs)
+            #self.render(save=True, show=False, seed=self.seed)  # also render the final trained model
 
-        self.render_video(self.seed)
 
     def restart_train(self, **kwargs):
         """
@@ -281,7 +280,8 @@ class HLML_RL:
 
         return 0
 
-    def render_gif(self, seed=0, save=False, show=True, pytsave_path=None, *args, **kwargs):
+    def render(self, seed=0, save=False, show=True, pytsave_path=None,
+                        video_fmt='avi', *args, **kwargs):
 
         if pytsave_path is None:
             save_path = self.load_agent(seed, model_itr=kwargs.get('model_itr', ""))
@@ -298,9 +298,11 @@ class HLML_RL:
             Code from botforge:
                 https://gist.github.com/botforge/64cbb71780e6208172bbf03cd9293553
             Ensure you have imagemagick installed with
-            sudo apt-get install imagemagick
+            sudo apt-get install ffmpeg
+            For some reason, imagemagick has some problems with fps, using
+            ffmpeg instead
             """
-            fname = kwargs.get('filename', '/gym_animation.gif')
+            fname = kwargs.get('filename', '/gym_animation.' + video_fmt)
 
             def save_frames_as_gif(frames, path=save_path, filename=fname):
                 # Mess with this to change frame size
@@ -312,7 +314,7 @@ class HLML_RL:
                     patch.set_data(frames[i])
 
                 anim = animation.FuncAnimation(plt.gcf(), animate, frames=len(frames), interval=50)
-                anim.save(path + filename, writer='imagemagick', fps=60)
+                anim.save(path + filename, writer='ffmpeg', fps=60 )
 
             # Make gym env
             env = gym.make(self.env_str)
